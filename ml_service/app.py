@@ -10,9 +10,15 @@ app = Flask(__name__)
 CORS(app)
 
 print("Loading model...")
-model = load_model('wastewise_model.h5')
-# MAKE SURE THESE MATCH YOUR FOLDER NAMES EXACTLY (Alphabetical Order)
-class_names = ['cotton', 'denim', 'polyester', 'silk_satin'] 
+# UPDATE: Point this to your new fine-tuned model file
+model = load_model('wastewise_model_resnet_finetuned.keras')
+
+class_names = [
+    'Acrylic', 'Artificial_fur', 'Artificial_leather', 'Blended', 'Chenille', 
+    'Corduroy', 'Cotton', 'Crepe', 'Denim', 'Felt', 'Fleece', 'Leather', 
+    'Linen', 'Lut', 'Nylon', 'Polyester', 'Satin', 'Silk', 'Suede', 
+    'Terrycloth', 'Unclassified', 'Utilities', 'Velvet', 'Viscose', 'Wool'
+]
 print("Model loaded!")
 
 def prepare_image(image, target_size):
@@ -35,10 +41,8 @@ def predict():
         image = Image.open(io.BytesIO(file.read()))
         processed_image = prepare_image(image, target_size=(224, 224))
         
-        # Get raw probabilities (e.g., [0.1, 0.8, 0.05, 0.05])
         prediction = model.predict(processed_image)[0]
         
-        # Create a list of all materials with their scores
         results = []
         for i, score in enumerate(prediction):
             results.append({
@@ -46,12 +50,11 @@ def predict():
                 "confidence": float(score)
             })
             
-        # Sort them: Highest confidence first
         results.sort(key=lambda x: x["confidence"], reverse=True)
 
         return jsonify({
             "top_prediction": results[0],
-            "breakdown": results # Send ALL probabilities back to React
+            "breakdown": results
         })
 
     except Exception as e:
