@@ -39,6 +39,7 @@ export function AuthProvider({ children }) {
           email: data.email,
           role: data.role,
           token: data.token,
+          isApproved: data.isApproved,
           // Optional: Add company name logic based on role if needed
           companyName: data.role.includes('company') ? `${data.name} Corp` : undefined
         };
@@ -54,14 +55,14 @@ export function AuthProvider({ children }) {
     }
   };
 
-  const register = async (name, email, password, role) => {
+  const register = async (payload) => {
     try {
       const response = await fetch('http://localhost:5000/api/auth/register', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ name, email, password, role }),
+        body: JSON.stringify(payload),
       });
 
       const data = await response.json();
@@ -73,6 +74,7 @@ export function AuthProvider({ children }) {
           email: data.email,
           role: data.role,
           token: data.token,
+          isApproved: data.isApproved,
           companyName: data.role.includes('company') ? `${data.name} Corp` : undefined
         };
         setUser(userData);

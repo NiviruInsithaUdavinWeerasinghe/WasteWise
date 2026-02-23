@@ -48,7 +48,7 @@ function AppContent() {
   const [showUpload, setShowUpload] = useState(false);
   
   return (
-    <div className="bg-industrial-50 min-h-screen flex flex-col">
+    <div className="bg-industrial-950 text-industrial-100 min-h-screen flex flex-col">
       <Navbar toggleUpload={() => setShowUpload(!showUpload)} showUpload={showUpload} />
       
       <main className="flex-grow pt-16 relative">

@@ -1,91 +1,274 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, TrendingUp, CheckCircle } from 'lucide-react';
+import { X, TrendingUp, CheckCircle, Clock, MapPin, Package, Shield, Info, User, ChevronRight, FileSignature } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
 export default function BidModal({ isOpen, onClose, item, onPlaceBid }) {
   const [amount, setAmount] = useState('');
   const [isSuccess, setIsSuccess] = useState(false);
+  const [liveBids, setLiveBids] = useState([]);
+  const { user } = useAuth();
+  const scrollRef = useRef(null);
 
-  if (!isOpen) return null;
+  useEffect(() => {
+    if (isOpen && item) {
+       // Generate dummy live bids based on the item's current top bid
+       const base = item.rawHighestBid || 1000;
+       const mockHistory = [
+         { id: 1, name: "EcoRecycle Corp", amount: base, time: "Just now" },
+         { id: 2, name: "Textile Innovations", amount: Math.floor(base * 0.95), time: "2 mins ago" },
+         { id: 3, name: "Global Fibers Ltd", amount: Math.floor(base * 0.88), time: "15 mins ago" },
+         { id: 4, name: "Oceanic Threads", amount: Math.floor(base * 0.82), time: "1 hour ago" },
+         { id: 5, name: "GreenWay Solutions", amount: Math.floor(base * 0.75), time: "3 hours ago" }
+       ];
+       // Incorporate real bids if they exist and are passed
+       if (item.realBids && item.realBids.length > 0) {
+           const formattedReal = item.realBids.map((b, i) => ({
+              id: `real-${i}`,
+              name: b.userId?.name || `Bidder #${String(b.userId).slice(-4)}`,
+              amount: b.amount,
+              time: new Date(b.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})
+           })).reverse();
+           setLiveBids([...formattedReal, ...mockHistory].slice(0, 10));
+       } else {
+           setLiveBids(mockHistory);
+       }
+    }
+  }, [isOpen, item]);
+
+  useEffect(() => {
+     if (scrollRef.current) {
+        scrollRef.current.scrollTop = 0;
+     }
+  }, [liveBids]);
+
+  if (!isOpen || !item) return null;
 
   const handleSubmit = (e) => {
     e.preventDefault();
     setIsSuccess(true);
+    
+    // Optimistically add to live feed
+    setLiveBids(prev => [{
+      id: Date.now(),
+      name: user?.name || "You",
+      amount: Number(amount),
+      time: "Just now",
+      isYou: true
+    }, ...prev]);
+
     setTimeout(() => {
       onPlaceBid(amount);
       setIsSuccess(false);
       setAmount('');
       onClose();
-    }, 1500);
+    }, 2000);
   };
 
-  return (
+  const minBid = (item.rawHighestBid || 0) + (item.rawHighestBid > 10000 ? 500 : 100);
+
+  return createPortal(
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-        <motion.div 
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          onClick={onClose}
-          className="absolute inset-0 bg-industrial-900/60 backdrop-blur-sm"
-        />
-        <motion.div
-           initial={{ opacity: 0, scale: 0.95, y: 20 }}
-           animate={{ opacity: 1, scale: 1, y: 0 }}
-           exit={{ opacity: 0, scale: 0.95, y: 20 }}
-           className="relative z-50 bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden"
-        >
+      {isOpen && item && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6">
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={onClose}
+            className="absolute inset-0 bg-industrial-950/90 backdrop-blur-xl"
+          />
+          
+          <motion.div
+             initial={{ opacity: 0, scale: 0.95, y: 20 }}
+             animate={{ opacity: 1, scale: 1, y: 0 }}
+             exit={{ opacity: 0, scale: 0.95, y: 20 }}
+             className="relative z-50 bg-industrial-900 rounded-2xl shadow-2xl w-full max-w-5xl overflow-hidden border border-industrial-800 flex flex-col md:flex-row max-h-[90vh]"
+          >
           {isSuccess ? (
-             <div className="p-8 text-center bg-nature-50">
+             <div className="p-12 text-center bg-industrial-900 w-full flex flex-col items-center justify-center min-h-[400px]">
                 <motion.div 
                    initial={{ scale: 0 }} 
-                   animate={{ scale: 1 }} 
-                   className="w-16 h-16 bg-nature-100 text-nature-600 rounded-full flex items-center justify-center mx-auto mb-4"
+                   animate={{ scale: 1, rotate: 360 }} 
+                   transition={{ type: "spring", damping: 15 }}
+                   className="w-24 h-24 bg-nature-500/20 text-nature-400 rounded-full flex items-center justify-center mx-auto mb-6 border-2 border-nature-500/30 shadow-[0_0_30px_rgba(34,197,94,0.3)]"
                 >
-                   <CheckCircle size={32} />
+                   <CheckCircle size={48} />
                 </motion.div>
-                <h3 className="text-xl font-bold text-industrial-900">Bid Placed!</h3>
-                <p className="text-industrial-500 mt-2">You are now the highest bidder for {item.title}.</p>
+                <h3 className="text-3xl font-bold text-white mb-2">Bid Confirmed!</h3>
+                <p className="text-industrial-400 text-lg">You securely placed a bid of <span className="text-nature-400 font-bold">{Number(amount).toLocaleString()} LKR</span>.</p>
+                <p className="text-industrial-500 text-sm mt-4">Returning to dashboard...</p>
              </div>
           ) : (
             <>
-              <div className="px-6 py-4 border-b border-industrial-100 flex justify-between items-center bg-industrial-50">
-                <h3 className="font-bold text-industrial-900">Place Bid</h3>
-                <button onClick={onClose} className="text-industrial-400 hover:text-red-500"><X size={20}/></button>
+              {/* Close Button Mobile */}
+              <button onClick={onClose} className="md:hidden absolute top-4 right-4 z-50 bg-industrial-950/50 text-white p-2 rounded-full border border-industrial-800"><X size={20}/></button>
+
+              {/* Left Column: Item Details */}
+              <div className="w-full md:w-3/5 bg-industrial-950 overflow-y-auto">
+                 <div className="relative h-64 md:h-80 w-full">
+                    <img src={item.image} alt={item.title} className="w-full h-full object-cover" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-industrial-950 via-transparent to-black/30"></div>
+                    <button onClick={onClose} className="hidden md:flex absolute top-4 left-4 bg-black/50 hover:bg-black/80 text-white px-3 py-1.5 rounded-lg border border-white/20 backdrop-blur-md transition-colors items-center gap-1 text-sm font-medium">
+                       <X size={16} /> Close Room
+                    </button>
+                    <div className="absolute bottom-6 left-6 right-6">
+                       <div className="flex gap-2 mb-3">
+                          <span className="bg-nature-500/80 backdrop-blur-md text-white px-2.5 py-1 rounded-md text-xs font-bold uppercase tracking-wider border border-white/20">Live Auction</span>
+                          <span className="bg-black/60 backdrop-blur-md text-industrial-300 px-2.5 py-1 rounded-md text-xs font-bold border border-white/10 uppercase tracking-wider">{item.type || 'Material'}</span>
+                       </div>
+                       <h2 className="text-2xl md:text-3xl font-bold text-white leading-tight shadow-black drop-shadow-lg">{item.title}</h2>
+                    </div>
+                 </div>
+
+                 <div className="p-6 space-y-6">
+                    {/* Key Stats */}
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                       <div className="bg-industrial-900 border border-industrial-800 rounded-xl p-4 text-center">
+                          <Package size={20} className="text-industrial-400 mx-auto mb-2" />
+                          <p className="text-xs text-industrial-500 uppercase tracking-wider font-bold mb-1">Volume</p>
+                          <p className="text-white font-bold">{item.weight}</p>
+                       </div>
+                       <div className="bg-industrial-900 border border-industrial-800 rounded-xl p-4 text-center">
+                          <MapPin size={20} className="text-blue-400 mx-auto mb-2" />
+                          <p className="text-xs text-industrial-500 uppercase tracking-wider font-bold mb-1">Location</p>
+                          <p className="text-white font-bold text-sm truncate">{item.location || 'Verified Facility'}</p>
+                       </div>
+                       <div className="bg-industrial-900 border border-industrial-800 rounded-xl p-4 text-center">
+                          <Info size={20} className="text-orange-400 mx-auto mb-2" />
+                          <p className="text-xs text-industrial-500 uppercase tracking-wider font-bold mb-1">Condition</p>
+                          <p className="text-white font-bold text-sm truncate">{item.condition || 'Factory Grade'}</p>
+                       </div>
+                       <div className="bg-industrial-900 border border-industrial-800 rounded-xl p-4 text-center">
+                          <Shield size={20} className="text-nature-400 mx-auto mb-2" />
+                          <p className="text-xs text-industrial-500 uppercase tracking-wider font-bold mb-1">Eligibility</p>
+                          <p className="text-white font-bold text-sm">Green Cert</p>
+                       </div>
+                    </div>
+
+                    {/* Description */}
+                    <div>
+                       <h3 className="text-lg font-bold text-white mb-3 flex items-center gap-2"><FileSignature size={18} className="text-industrial-400"/> Lot Information</h3>
+                       <p className="text-industrial-400 text-sm leading-relaxed">
+                         This lot consists of {item.weight} of premium {item.condition?.toLowerCase() || 'grade'} {item.type?.toLowerCase() || 'waste materials'}, sourced directly from our verified manufacturing partner network. The materials have been audited for quality and are ready for immediate dispatch upon contract finalization.
+                       </p>
+                    </div>
+
+                    {/* Seller Banner */}
+                    <div className="flex items-center gap-4 p-4 rounded-xl border border-industrial-800 bg-industrial-900/50">
+                       <div className="w-12 h-12 rounded-full bg-industrial-800 flex items-center justify-center border border-industrial-700 shrink-0">
+                          <User size={24} className="text-industrial-500" />
+                       </div>
+                       <div className="flex-1">
+                          <h4 className="text-white font-bold text-sm flex items-center gap-2">
+                            {item.sellerName || 'Verified Factory Source'} 
+                            <CheckCircle size={14} className="text-blue-500" />
+                          </h4>
+                          <p className="text-industrial-500 text-xs">Sustainability Partner Level: Gold</p>
+                       </div>
+                       <button className="text-xs font-bold text-industrial-400 hover:text-white transition-colors bg-industrial-800 px-3 py-1.5 rounded-lg border border-industrial-700">View Profile</button>
+                    </div>
+                 </div>
               </div>
-              <div className="p-6">
-                <div className="flex gap-4 mb-6">
-                   <img src={item.image} alt={item.title} className="w-20 h-20 rounded-lg object-cover" />
-                   <div>
-                      <h4 className="font-bold text-sm text-industrial-900 line-clamp-2">{item.title}</h4>
-                      <p className="text-xs text-industrial-500 mt-1">Current Highest: <span className="text-nature-600 font-bold">{item.currentBid}</span></p>
-                   </div>
-                </div>
-                
-                <form onSubmit={handleSubmit} className="space-y-4">
-                   <div>
-                      <label className="block text-xs font-medium text-industrial-500 mb-1">Your Max Bid (LKR)</label>
-                      <div className="relative">
-                         <div className="absolute left-3 top-1/2 -translate-y-1/2 text-industrial-400">Rs.</div>
-                         <input 
-                           type="number" 
-                           required
-                           value={amount}
-                           onChange={(e) => setAmount(e.target.value)}
-                           className="w-full pl-10 pr-4 py-2 bg-white border border-industrial-200 rounded-lg focus:ring-2 focus:ring-nature-500 focus:border-nature-500 outline-none font-mono font-medium"
-                           placeholder="Enter amount..."
-                         />
-                      </div>
-                   </div>
-                   <button type="submit" className="w-full bg-nature-600 hover:bg-nature-700 text-white font-bold py-3 rounded-xl transition-all shadow-md shadow-nature-200 flex justify-center items-center gap-2">
-                      Confirm Bid <TrendingUp size={18} />
-                   </button>
-                </form>
+
+              {/* Right Column: Live Bidding */}
+              <div className="w-full md:w-2/5 bg-industrial-900 flex flex-col items-stretch border-l border-industrial-800 relative z-10 shadow-[-10px_0_30px_rgba(0,0,0,0.5)]">
+                 
+                 {/* Bidding Header */}
+                 <div className="p-6 border-b border-industrial-800 bg-industrial-950/30">
+                    <div className="flex justify-between items-center mb-4">
+                       <span className="flex items-center gap-2 text-orange-400 bg-orange-500/10 px-3 py-1.5 rounded-full text-xs font-bold border border-orange-500/20">
+                          <Clock size={14} className="animate-pulse" /> {item.timeEnds || 'Ends Soon'}
+                       </span>
+                       <span className="text-industrial-400 text-xs font-medium">{liveBids.length} Bids Placed</span>
+                    </div>
+                    <div>
+                       <p className="text-industrial-400 text-sm font-medium mb-1">Current Highest Bid</p>
+                       <p className="text-3xl md:text-4xl font-black text-white tracking-tight">
+                         {item.rawHighestBid 
+                           ? <>{Number(item.rawHighestBid).toLocaleString()} <span className="text-xl text-nature-500">LKR</span></> 
+                           : <>{item.currentBid?.replace('LKR', '') || '0'} <span className="text-xl text-nature-500">LKR</span></>}
+                       </p>
+                    </div>
+                 </div>
+
+                 {/* Live Feed */}
+                 <div className="flex-1 overflow-y-auto p-6 relative custom-scrollbar" ref={scrollRef}>
+                    <div className="absolute top-0 left-0 w-full h-8 bg-gradient-to-b from-industrial-900 to-transparent z-10 pointer-events-none"></div>
+                    <div className="space-y-4">
+                       {liveBids.map((b, i) => (
+                          <motion.div 
+                             initial={i === 0 ? { opacity: 0, x: -20, bg: '#22c55e20' } : false}
+                             animate={{ opacity: 1, x: 0, bg: 'transparent' }}
+                             transition={{ duration: 0.5 }}
+                             key={b.id} 
+                             className={`flex justify-between items-center p-3 rounded-lg border ${i === 0 ? 'bg-nature-500/5 border-nature-500/30' : 'bg-industrial-950 border-industrial-800'}`}
+                          >
+                             <div className="flex items-center gap-3">
+                                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${b.isYou ? 'bg-blue-500 text-white' : i === 0 ? 'bg-nature-500 text-white shadow-[0_0_10px_rgba(34,197,94,0.5)]' : 'bg-industrial-800 text-industrial-400'}`}>
+                                   {b.isYou ? 'You' : b.name.charAt(0)}
+                                </div>
+                                <div>
+                                   <p className={`text-sm font-bold ${b.isYou ? 'text-blue-400' : i === 0 ? 'text-nature-400' : 'text-white'}`}>{b.name}</p>
+                                   <p className="text-xs text-industrial-500">{b.time}</p>
+                                </div>
+                             </div>
+                             <div className={`font-mono font-bold ${i === 0 ? 'text-nature-400' : 'text-industrial-300'}`}>
+                                {b.amount.toLocaleString()} LKR
+                             </div>
+                          </motion.div>
+                       ))}
+                    </div>
+                    <div className="absolute bottom-0 left-0 w-full h-8 bg-gradient-to-t from-industrial-900 to-transparent z-10 pointer-events-none"></div>
+                 </div>
+
+                 {/* Bid Action Area */}
+                 <div className="p-6 border-t border-industrial-800 bg-industrial-950/80 backdrop-blur-md">
+                    {user?.role === 'company-seller' ? (
+                       <div className="bg-industrial-900 p-4 rounded-xl text-center border border-industrial-800 shadow-inner">
+                          <p className="text-sm font-bold text-industrial-300">Observer Mode</p>
+                          <p className="text-xs text-industrial-500 mt-1">Sellers cannot participate in bidding.</p>
+                       </div>
+                    ) : (
+                      <form onSubmit={handleSubmit} className="space-y-4">
+                         <div>
+                            <div className="flex justify-between text-xs mb-2">
+                               <span className="text-industrial-400 font-medium">Your Maximum Bid</span>
+                               <span className="text-industrial-500 font-mono">Min: {minBid.toLocaleString()} LKR</span>
+                            </div>
+                            <div className="relative group">
+                               <div className="absolute left-4 top-1/2 -translate-y-1/2 text-industrial-500 font-bold">LKR</div>
+                               <input 
+                                 type="number" 
+                                 required
+                                 min={minBid}
+                                 value={amount}
+                                 onChange={(e) => setAmount(e.target.value)}
+                                 className="w-full pl-14 pr-16 py-3 bg-industrial-900 border-2 border-industrial-700 rounded-xl focus:border-nature-500 focus:bg-industrial-950 transition-all outline-none font-mono font-black text-xl text-white placeholder-industrial-700 shadow-inner [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                 placeholder={minBid.toString()}
+                               />
+                               <div className="absolute right-2 top-1/2 -translate-y-1/2">
+                                  <button type="button" onClick={() => setAmount(minBid)} className="text-[10px] uppercase font-bold bg-industrial-800 hover:bg-industrial-700 transition-colors text-industrial-400 px-2 py-1 rounded">Min Bid</button>
+                               </div>
+                            </div>
+                         </div>
+                         <button type="submit" className="w-full group bg-gradient-to-r from-nature-600 to-nature-500 hover:from-nature-500 hover:to-nature-400 text-white font-black text-base py-3.5 rounded-xl transition-all shadow-[0_0_20px_rgba(34,197,94,0.3)] hover:shadow-[0_0_30px_rgba(34,197,94,0.5)] flex justify-center items-center gap-2">
+                            Place Live Bid <TrendingUp size={20} className="group-hover:-translate-y-1 group-hover:translate-x-1 transition-transform" />
+                         </button>
+                         <p className="text-center text-[10px] text-industrial-500 uppercase tracking-widest px-4 leading-relaxed">
+                            By placing a bid, you agree to the WasteWise Digital Trade Agreement SLAs.
+                         </p>
+                      </form>
+                    )}
+                 </div>
               </div>
             </>
           )}
         </motion.div>
-      </div>
-    </AnimatePresence>
+        </div>
+      )}
+    </AnimatePresence>,
+    document.body
   );
 }

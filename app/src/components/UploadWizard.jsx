@@ -124,8 +124,8 @@ export default function UploadWizard() {
   };
 
   return (
-    <div className="max-w-2xl mx-auto bg-white rounded-2xl shadow-xl border border-industrial-100 overflow-hidden max-h-[90vh] overflow-y-auto">
-      <div className="bg-industrial-900 px-6 py-4 flex justify-between items-center sticky top-0 z-10">
+    <div className="max-w-2xl mx-auto bg-industrial-900 rounded-2xl shadow-2xl border border-industrial-800 overflow-hidden max-h-[90vh] overflow-y-auto">
+      <div className="bg-industrial-950/80 backdrop-blur-md px-6 py-4 flex justify-between items-center sticky top-0 z-10 border-b border-industrial-800">
         <h2 className="text-white font-semibold text-lg flex items-center gap-2">
           <Upload size={20} className="text-nature-400" />
           Waste Identification Portal
@@ -145,19 +145,19 @@ export default function UploadWizard() {
               exit={{ opacity: 0 }}
               className="text-center"
             >
-              <div className="border-2 border-dashed border-industrial-200 rounded-xl p-12 hover:border-nature-500 hover:bg-nature-50 transition-all cursor-pointer relative">
+              <div className="border-2 border-dashed border-industrial-700 rounded-xl p-12 hover:border-nature-500 hover:bg-industrial-800/50 transition-all cursor-pointer relative bg-industrial-950/30">
                 <input 
                   type="file" 
                   accept="image/*"
                   onChange={handleFileChange}
                   className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                 />
-                <div className="bg-industrial-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 text-industrial-500">
+                <div className="bg-industrial-800 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 text-industrial-400 border border-industrial-700">
                   <Upload size={32} />
                 </div>
-                <h3 className="text-lg font-medium text-industrial-900">Drop waste photo here</h3>
+                <h3 className="text-lg font-medium text-white">Drop waste photo here</h3>
                 <p className="text-sm text-industrial-500 mt-2">or click to browse (Supports JPG, PNG)</p>
-                <div className="mt-6 inline-flex items-center gap-2 px-3 py-1 bg-nature-100 text-nature-700 rounded-full text-xs font-medium">
+                <div className="mt-6 inline-flex items-center gap-2 px-3 py-1 bg-nature-500/10 text-nature-400 rounded-full text-xs font-medium border border-nature-500/20">
                   <AlertCircle size={14} />
                   AI Model v2.0 Connected
                 </div>
@@ -175,18 +175,18 @@ export default function UploadWizard() {
             >
               <div className="relative w-24 h-24 mx-auto mb-6">
                 <motion.div 
-                  className="absolute inset-0 border-4 border-industrial-100 rounded-full"
+                  className="absolute inset-0 border-4 border-industrial-800 rounded-full"
                 />
                 <motion.div 
-                  className="absolute inset-0 border-4 border-nature-500 rounded-full border-t-transparent"
+                  className="absolute inset-0 border-4 border-nature-500 rounded-full border-t-transparent shadow-[0_0_15px_rgba(34,197,94,0.3)]"
                   animate={{ rotate: 360 }}
                   transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
                 />
                 <div className="absolute inset-0 flex items-center justify-center">
-                   <Loader size={32} className="text-nature-600" />
+                   <Loader size={32} className="text-nature-500" />
                 </div>
               </div>
-              <h3 className="text-xl font-medium text-industrial-900 mb-2">Analyzing Material Structure...</h3>
+              <h3 className="text-xl font-medium text-white mb-2">Analyzing Material Structure...</h3>
               <p className="text-industrial-500 text-sm">Communicating with Python ML Service...</p>
             </motion.div>
           )}
@@ -200,29 +200,29 @@ export default function UploadWizard() {
             >
               <div className="flex gap-6 mb-8">
                 {image && (
-                    <img src={image} alt="Waste" className="w-32 h-32 object-cover rounded-lg border border-industrial-200 shadow-sm" />
+                    <img src={image} alt="Waste" className="w-32 h-32 object-cover rounded-lg border border-industrial-700 shadow-md" />
                 )}
                 <div className="flex-1">
-                   <div className="flex items-center gap-2 text-nature-600 font-bold text-sm mb-1">
+                   <div className="flex items-center gap-2 text-nature-500 font-bold text-sm mb-1">
                       <CheckCircle size={16} />
                       Analysis Complete
                    </div>
-                   <h3 className="text-2xl font-bold text-industrial-900 capitalize">
+                   <h3 className="text-2xl font-bold text-white capitalize">
                       {aiResult.top_prediction.material.replace('_', ' ')} Dominant
                    </h3>
                    
                    <div className="mt-4 space-y-3">
-                      <p className="text-xs font-semibold text-industrial-500 uppercase tracking-wider">Material Composition</p>
+                      <p className="text-xs font-semibold text-industrial-400 uppercase tracking-wider">Material Composition</p>
                       {aiResult.breakdown.map((item, index) => (
                           item.confidence > 0.05 && (
                             <div key={index} className="w-full">
                               <div className="flex justify-between text-xs mb-1">
-                                  <span className="capitalize font-medium text-industrial-700">{item.material.replace('_', ' ')}</span>
-                                  <span className="text-industrial-500">{(item.confidence * 100).toFixed(1)}%</span>
+                                  <span className="capitalize font-medium text-industrial-300">{item.material.replace('_', ' ')}</span>
+                                  <span className="text-industrial-400">{(item.confidence * 100).toFixed(1)}%</span>
                               </div>
-                              <div className="w-full bg-industrial-100 rounded-full h-2">
+                              <div className="w-full bg-industrial-800 rounded-full h-2">
                                   <div 
-                                     className={`h-2 rounded-full ${index === 0 ? 'bg-nature-500' : 'bg-industrial-400'}`} 
+                                     className={`h-2 rounded-full ${index === 0 ? 'bg-nature-500 shadow-[0_0_10px_rgba(34,197,94,0.4)]' : 'bg-industrial-500'}`} 
                                      style={{ width: `${item.confidence * 100}%` }}
                                   ></div>
                               </div>
@@ -234,29 +234,29 @@ export default function UploadWizard() {
               </div>
 
               <div className="grid grid-cols-2 gap-4 mb-8">
-                <div className="bg-nature-50 p-4 rounded-xl border border-nature-100">
-                  <div className="text-nature-600 text-sm font-medium mb-1">Confidence Score</div>
-                  <div className="text-2xl font-bold text-nature-800">
+                <div className="bg-nature-500/10 p-4 rounded-xl border border-nature-500/20">
+                  <div className="text-nature-500 text-sm font-medium mb-1">Confidence Score</div>
+                  <div className="text-2xl font-bold text-nature-400">
                       {(aiResult.top_prediction.confidence * 100).toFixed(0)}%
                   </div>
-                  <div className="text-xs text-nature-600 mt-1">Match Accuracy</div>
+                  <div className="text-xs text-nature-500/80 mt-1">Match Accuracy</div>
                 </div>
-                <div className="bg-white p-4 rounded-xl border border-industrial-200">
-                   <div className="text-industrial-500 text-sm font-medium mb-1 flex items-center gap-1">
+                <div className="bg-industrial-950 p-4 rounded-xl border border-industrial-800 shadow-inner">
+                   <div className="text-industrial-400 text-sm font-medium mb-1 flex items-center gap-1">
                       <TrendingUp size={14} /> Est. Market Value
                    </div>
-                   <div className="text-2xl font-bold text-industrial-900">
+                   <div className="text-2xl font-bold text-white">
                       {getEstimatedPrice(aiResult.top_prediction.material)} 
-                      <span className="text-sm text-industrial-400 font-normal ml-1">LKR/kg</span>
+                      <span className="text-sm text-industrial-500 font-normal ml-1">LKR/kg</span>
                    </div>
                 </div>
               </div>
 
               <div className="flex gap-3">
-                 <button onClick={() => setStatus('details')} className="flex-1 bg-nature-600 text-white font-medium py-3 rounded-lg hover:bg-nature-700 transition-colors shadow-lg shadow-nature-200 capitalize">
+                 <button onClick={() => setStatus('details')} className="flex-1 bg-nature-600 text-white font-bold py-3 rounded-lg hover:bg-nature-500 transition-colors shadow-lg shadow-nature-900/50 capitalize">
                     Proceed to Listing Details
                  </button>
-                 <button onClick={resetUpload} className="flex items-center justify-center gap-2 px-6 py-3 border border-industrial-200 text-industrial-600 font-medium rounded-lg hover:bg-industrial-50 transition-colors">
+                 <button onClick={resetUpload} className="flex items-center justify-center gap-2 px-6 py-3 border border-industrial-700 text-industrial-400 font-medium rounded-lg hover:bg-industrial-800 hover:text-white transition-colors">
                     <RefreshCw size={18} />
                     Scan Again
                  </button>
@@ -272,16 +272,16 @@ export default function UploadWizard() {
               onSubmit={submitListing}
               className="text-left space-y-4"
             >
-              <h3 className="text-xl font-bold text-industrial-900 mb-4">Complete Listing Details</h3>
+              <h3 className="text-xl font-bold text-white mb-4">Complete Listing Details</h3>
               
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-industrial-700 mb-1">Weight (kg)</label>
-                  <input type="number" name="weight" required value={formData.weight} onChange={handleInputChange} className="w-full border border-industrial-200 rounded-lg py-2 px-3 focus:ring-2 focus:ring-nature-500 outline-none" min="1" />
+                  <label className="block text-sm font-medium text-industrial-400 mb-1">Weight (kg)</label>
+                  <input type="number" name="weight" required value={formData.weight} onChange={handleInputChange} className="w-full bg-industrial-950 border border-industrial-800 rounded-lg py-2.5 px-3 focus:ring-2 focus:ring-nature-500 outline-none text-white placeholder-industrial-600 shadow-inner" min="1" />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-industrial-700 mb-1">Condition</label>
-                  <select name="condition" value={formData.condition} onChange={handleInputChange} className="w-full border border-industrial-200 rounded-lg py-2 px-3 focus:ring-2 focus:ring-nature-500 outline-none">
+                  <label className="block text-sm font-medium text-industrial-400 mb-1">Condition</label>
+                  <select name="condition" value={formData.condition} onChange={handleInputChange} className="w-full bg-industrial-950 border border-industrial-800 rounded-lg py-2.5 px-3 focus:ring-2 focus:ring-nature-500 outline-none text-white shadow-inner">
                     <option value="Excellent">Excellent</option>
                     <option value="Good">Good</option>
                     <option value="Fair">Fair</option>
@@ -291,13 +291,13 @@ export default function UploadWizard() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-industrial-700 mb-1">Location</label>
-                <input type="text" name="location" required value={formData.location} onChange={handleInputChange} placeholder="e.g. Colombo, Sri Lanka" className="w-full border border-industrial-200 rounded-lg py-2 px-3 focus:ring-2 focus:ring-nature-500 outline-none" />
+                <label className="block text-sm font-medium text-industrial-400 mb-1">Location</label>
+                <input type="text" name="location" required value={formData.location} onChange={handleInputChange} placeholder="e.g. Colombo, Sri Lanka" className="w-full bg-industrial-950 border border-industrial-800 rounded-lg py-2.5 px-3 focus:ring-2 focus:ring-nature-500 outline-none text-white placeholder-industrial-600 shadow-inner" />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-industrial-700 mb-1">Selling Method</label>
-                <select name="sellingMethod" value={formData.sellingMethod} onChange={handleInputChange} className="w-full border border-industrial-200 rounded-lg py-2 px-3 focus:ring-2 focus:ring-nature-500 outline-none">
+                <label className="block text-sm font-medium text-industrial-400 mb-1">Selling Method</label>
+                <select name="sellingMethod" value={formData.sellingMethod} onChange={handleInputChange} className="w-full bg-industrial-950 border border-industrial-800 rounded-lg py-2.5 px-3 focus:ring-2 focus:ring-nature-500 outline-none text-white shadow-inner">
                   <option value="auction">Auction (Bidding)</option>
                   <option value="direct">Direct Sale (Fixed Price)</option>
                 </select>
@@ -305,36 +305,36 @@ export default function UploadWizard() {
 
               {formData.sellingMethod === 'auction' ? (
                 <div>
-                  <label className="block text-sm font-medium text-industrial-700 mb-1">Starting Bid (LKR)</label>
-                  <input type="number" name="startingBid" required value={formData.startingBid} onChange={handleInputChange} className="w-full border border-industrial-200 rounded-lg py-2 px-3 focus:ring-2 focus:ring-nature-500 outline-none" min="1" />
+                  <label className="block text-sm font-medium text-industrial-400 mb-1">Starting Bid (LKR)</label>
+                  <input type="number" name="startingBid" required value={formData.startingBid} onChange={handleInputChange} className="w-full bg-industrial-950 border border-industrial-800 rounded-lg py-2.5 px-3 focus:ring-2 focus:ring-nature-500 outline-none text-white placeholder-industrial-600 shadow-inner" min="1" />
                 </div>
               ) : (
                 <div>
-                  <label className="block text-sm font-medium text-industrial-700 mb-1">Fixed Price (LKR)</label>
-                  <input type="number" name="price" required value={formData.price} onChange={handleInputChange} className="w-full border border-industrial-200 rounded-lg py-2 px-3 focus:ring-2 focus:ring-nature-500 outline-none" min="1" />
+                  <label className="block text-sm font-medium text-industrial-400 mb-1">Fixed Price (LKR)</label>
+                  <input type="number" name="price" required value={formData.price} onChange={handleInputChange} className="w-full bg-industrial-950 border border-industrial-800 rounded-lg py-2.5 px-3 focus:ring-2 focus:ring-nature-500 outline-none text-white placeholder-industrial-600 shadow-inner" min="1" />
                 </div>
               )}
 
-              <div className="flex gap-3 pt-4 border-t border-industrial-100">
-                 <button type="submit" className="flex-1 bg-nature-600 text-white font-medium py-3 rounded-lg hover:bg-nature-700 transition-colors shadow-lg flex justify-center items-center gap-2">
+              <div className="flex gap-3 pt-4 border-t border-industrial-800">
+                 <button type="submit" className="flex-1 bg-nature-600 text-white font-bold py-3 rounded-lg hover:bg-nature-500 transition-colors shadow-lg flex justify-center items-center gap-2">
                     <Send size={18} /> Publish Listing
                  </button>
-                 <button type="button" onClick={() => setStatus('complete')} className="px-4 py-3 border border-industrial-200 text-industrial-600 font-medium rounded-lg hover:bg-industrial-50 transition-colors">
+                 <button type="button" onClick={() => setStatus('complete')} className="px-5 py-3 border border-industrial-700 text-industrial-400 font-medium rounded-lg hover:bg-industrial-800 hover:text-white transition-colors">
                     Back
                  </button>
               </div>
             </motion.form>
           )}
 
-          {status === 'submitting' && (
+           {status === 'submitting' && (
              <motion.div
                key="submitting"
                initial={{ opacity: 0 }}
                animate={{ opacity: 1 }}
                className="text-center py-12"
              >
-               <Loader size={32} className="text-nature-600 animate-spin mx-auto mb-4" />
-               <h3 className="text-lg font-medium text-industrial-900">Publishing to Marketplace...</h3>
+               <Loader size={32} className="text-nature-500 animate-spin mx-auto mb-4" />
+               <h3 className="text-lg font-medium text-white">Publishing to Marketplace...</h3>
              </motion.div>
           )}
 
@@ -345,13 +345,13 @@ export default function UploadWizard() {
                animate={{ opacity: 1, scale: 1 }}
                className="text-center py-12"
              >
-               <div className="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-4">
+               <div className="w-16 h-16 bg-nature-500/20 text-nature-400 border border-nature-500/30 rounded-full flex items-center justify-center mx-auto mb-4">
                   <CheckCircle size={32} />
                </div>
-               <h3 className="text-2xl font-bold text-industrial-900 mb-2">Listing Published!</h3>
-               <p className="text-industrial-500 mb-8">Your waste material is now live on the marketplace.</p>
+               <h3 className="text-2xl font-bold text-white mb-2">Listing Published!</h3>
+               <p className="text-industrial-400 mb-8">Your waste material is now live on the marketplace.</p>
                
-               <button onClick={resetUpload} className="bg-industrial-900 text-white font-medium px-6 py-3 rounded-lg hover:bg-industrial-800 transition-colors">
+               <button onClick={resetUpload} className="bg-nature-600 text-white font-bold px-8 py-3 rounded-lg hover:bg-nature-500 transition-colors shadow-lg">
                   Submit Another Item
                </button>
              </motion.div>

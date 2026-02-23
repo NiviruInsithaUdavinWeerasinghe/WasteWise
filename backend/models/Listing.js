@@ -38,7 +38,22 @@ const listingSchema = new mongoose.Schema({
     enum: ['active', 'sold'],
     default: 'active',
     required: true
-  }
+  },
+  bids: [{
+    userId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      required: true
+    },
+    amount: {
+      type: Number,
+      required: true
+    },
+    timestamp: {
+      type: Date,
+      default: Date.now
+    }
+  }]
 }, { timestamps: true });
 
 module.exports = mongoose.model('Listing', listingSchema);

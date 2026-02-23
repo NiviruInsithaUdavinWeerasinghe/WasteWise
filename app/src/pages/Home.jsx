@@ -1,17 +1,26 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { ArrowRight, ShieldCheck, Truck, BarChart3 } from 'lucide-react';
 import AuctionCard from '../components/AuctionCard';
+import BidModal from '../components/BidModal';
 import { motion } from 'framer-motion';
+import { useAuth } from '../context/AuthContext';
 
 export default function Home({ onOpenUpload }) {
+  const [selectedBidItem, setSelectedBidItem] = useState(null);
+  const { user } = useAuth();
+
   const auctions = [
     {
       id: 1,
       title: "Sorted Cotton Offcuts - Mixed Colors",
       weight: "500 kg",
       currentBid: "45,000 LKR",
+      rawHighestBid: 45000,
       timeEnds: "2h 15m",
       type: "Cotton",
+      condition: "Mixed Scraps",
+      location: "Katunayake EPZ",
+      sellerName: "EcoRecycle Corp",
       image: "https://images.unsplash.com/photo-1604937455095-ef2fe3d46fcd?auto=format&fit=crop&q=80&w=800"
     },
     {
@@ -19,8 +28,12 @@ export default function Home({ onOpenUpload }) {
       title: "Polyester Rolls - Surplus Grade B",
       weight: "120 kg",
       currentBid: "18,500 LKR",
+      rawHighestBid: 18500,
       timeEnds: "45m",
       type: "Polyester",
+      condition: "Grade B Surplus",
+      location: "Biyagama EPZ",
+      sellerName: "TexFab Lanka",
       image: "https://images.unsplash.com/photo-1620799140408-edc6dcb6d633?auto=format&fit=crop&q=80&w=800"
     },
     {
@@ -28,17 +41,21 @@ export default function Home({ onOpenUpload }) {
       title: "Denim Scraps - High Density",
       weight: "1,200 kg",
       currentBid: "112,000 LKR",
+      rawHighestBid: 112000,
       timeEnds: "5h 00m",
       type: "Denim",
-      image: "https://images.unsplash.com/photo-1582095133179-bfd08e2fc6b2?auto=format&fit=crop&q=80&w=800"
+      condition: "High Density Offcuts",
+      location: "Koggala EPZ",
+      sellerName: "Global Fibers Ltd",
+      image: "https://images.unsplash.com/photo-1542272604-787c3835535d?auto=format&fit=crop&q=80&w=800"
     }
   ];
 
   return (
-    <div className="pt-16 min-h-screen bg-industrial-50 font-sans text-industrial-900">
+    <div className="min-h-screen bg-industrial-950 font-sans text-white">
       
       {/* Hero Section */}
-      <section className="relative overflow-hidden bg-industrial-900 pt-20 pb-32 lg:pt-32 lg:pb-40">
+      <section className="relative overflow-hidden bg-industrial-900 pt-32 pb-32 lg:pt-40 lg:pb-40">
         <div className="absolute inset-0 opacity-20">
             <div className="absolute top-0 right-0 -mr-20 -mt-20 w-[600px] h-[600px] bg-nature-500 rounded-full blur-[100px]" />
             <div className="absolute bottom-0 left-0 -ml-20 -mb-20 w-[600px] h-[600px] bg-teal-600 rounded-full blur-[100px]" />
@@ -76,49 +93,55 @@ export default function Home({ onOpenUpload }) {
       </section>
 
       {/* Stats / Trust */}
-      <section className="bg-white py-12 border-b border-industrial-200">
-         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-2 md:grid-cols-4 gap-8 text-center divide-x divide-industrial-100">
+      <section className="bg-industrial-900 py-12 border-y border-industrial-800">
+         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-2 md:grid-cols-4 gap-8 text-center divide-x divide-industrial-800">
             <div>
                <div className="text-4xl font-bold text-nature-600 mb-1">500+</div>
-               <div className="text-sm text-industrial-500 font-medium">Factories Registered</div>
+               <div className="text-sm text-industrial-400 font-medium">Factories Registered</div>
             </div>
             <div>
                <div className="text-4xl font-bold text-nature-600 mb-1">12kT</div>
-               <div className="text-sm text-industrial-500 font-medium">Waste Diverted</div>
+               <div className="text-sm text-industrial-400 font-medium">Waste Diverted</div>
             </div>
             <div>
                <div className="text-4xl font-bold text-nature-600 mb-1">Rs 45M</div>
-               <div className="text-sm text-industrial-500 font-medium">Value Generated</div>
+               <div className="text-sm text-industrial-400 font-medium">Value Generated</div>
             </div>
             <div>
                <div className="text-4xl font-bold text-nature-600 mb-1">100%</div>
-               <div className="text-sm text-industrial-500 font-medium">Compliance Rate</div>
+               <div className="text-sm text-industrial-400 font-medium">Compliance Rate</div>
             </div>
          </div>
       </section>
 
       {/* Featured Auctions */}
-      <section className="py-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-end mb-12">
-           <div>
-              <h2 className="text-3xl font-bold text-industrial-900 mb-3">Live Material Auctions</h2>
-              <p className="text-industrial-500">Bid on verified bulk materials from certified factories.</p>
-           </div>
-           <button className="hidden md:flex items-center gap-2 text-nature-700 font-medium hover:text-nature-900">
-             View All Listings <ArrowRight size={18} />
-           </button>
-        </div>
-        
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-           {auctions.map(item => (
-             <AuctionCard key={item.id} {...item} />
-           ))}
-        </div>
-        
-        <button className="w-full md:hidden mt-8 py-3 bg-white border border-industrial-300 rounded-lg text-industrial-700 font-medium">
-             View All Listings
-        </button>
-      </section>
+      {user && (
+        <section className="py-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-end mb-12">
+             <div>
+                <h2 className="text-3xl font-bold text-white mb-3">Live Material Auctions</h2>
+                <p className="text-industrial-400">Bid on verified bulk materials from certified factories.</p>
+             </div>
+             <button className="hidden md:flex items-center gap-2 text-nature-400 font-medium hover:text-nature-300">
+               View All Listings <ArrowRight size={18} />
+             </button>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+             {auctions.map(item => (
+               <AuctionCard 
+                 key={item.id} 
+                 {...item} 
+                 onBid={() => setSelectedBidItem(item)}
+               />
+             ))}
+          </div>
+          
+          <button className="w-full md:hidden mt-8 py-3 bg-industrial-800 border border-industrial-700 rounded-lg text-industrial-300 font-medium">
+               View All Listings
+          </button>
+        </section>
+      )}
 
       {/* Value Props */}
       <section className="py-20 bg-industrial-900 text-white">
@@ -162,6 +185,17 @@ export default function Home({ onOpenUpload }) {
            </div>
         </div>
       </section>
+
+      {selectedBidItem && (
+        <BidModal 
+          isOpen={!!selectedBidItem} 
+          item={selectedBidItem} 
+          onClose={() => setSelectedBidItem(null)} 
+          onPlaceBid={(amount) => {
+            console.log(`Bid of ${amount} placed on ${selectedBidItem.title}`);
+          }}
+        />
+      )}
     </div>
   )
 }

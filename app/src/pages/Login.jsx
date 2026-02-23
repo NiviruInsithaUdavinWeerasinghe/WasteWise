@@ -29,11 +29,11 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-industrial-900 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-industrial-950 flex items-center justify-center p-4">
       <motion.div 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="max-w-md w-full bg-industrial-800 rounded-2xl border border-white/10 p-8 shadow-2xl"
+        className="max-w-md w-full bg-industrial-900 rounded-2xl border border-industrial-800 p-8 shadow-2xl"
       >
         <div className="text-center mb-8">
           <div className="bg-nature-500 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
@@ -44,7 +44,7 @@ export default function Login() {
         </div>
 
         {error && (
-          <div className="mb-6 p-4 bg-red-500/10 border border-red-500/50 rounded-xl flex items-center text-red-500 text-sm">
+          <div className={`mb-6 p-4 rounded-xl flex items-center text-sm ${error.includes('approval') ? 'bg-orange-500/10 border border-orange-500/50 text-orange-500' : 'bg-red-500/10 border border-red-500/50 text-red-500'}`}>
             <AlertCircle size={18} className="mr-2 flex-shrink-0" />
             <p>{error}</p>
           </div>
@@ -58,7 +58,7 @@ export default function Login() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className="w-full bg-industrial-900 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-nature-500 transition-shadow"
+              className="w-full bg-industrial-950 border border-industrial-800 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-nature-500 transition-shadow shadow-inner"
               placeholder="you@example.com"
             />
           </div>
@@ -70,7 +70,7 @@ export default function Login() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              className="w-full bg-industrial-900 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-nature-500 transition-shadow"
+              className="w-full bg-industrial-950 border border-industrial-800 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-nature-500 transition-shadow shadow-inner"
               placeholder="••••••••"
             />
           </div>

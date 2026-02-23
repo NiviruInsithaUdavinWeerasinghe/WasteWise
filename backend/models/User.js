@@ -18,6 +18,14 @@ const userSchema = new mongoose.Schema({
     type: String,
     enum: ['admin', 'company-seller', 'company-buyer', 'individual'],
     required: true
+  },
+  isApproved: {
+    type: Boolean,
+    default: false
+  },
+  companyDetails: {
+    brNumber: { type: String },
+    address: { type: String }
   }
 }, { timestamps: true });
 

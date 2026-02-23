@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import AuctionCard from '../components/AuctionCard';
 import BidModal from '../components/BidModal';
 import { Search, Filter, Loader } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
 export default function Marketplace() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -9,42 +10,87 @@ export default function Marketplace() {
   const [items, setItems] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    const fetchListings = async () => {
-      try {
-        const response = await fetch('http://localhost:5000/api/listings');
-        if (response.ok) {
-          const data = await response.json();
-          const formattedItems = data.map(listing => ({
+  const { user } = useAuth();
+
+  const getMaterialImage = (type) => {
+    const t = type.toLowerCase();
+    if (t.includes('plastic')) return "https://images.unsplash.com/photo-1595278069441-2cf29f8005a4?auto=format&fit=crop&q=80&w=800";
+    if (t.includes('paper') || t.includes('cardboard')) return "https://images.unsplash.com/photo-1603504381273-df13b2c159fb?auto=format&fit=crop&q=80&w=800";
+    if (t.includes('metal') || t.includes('steel') || t.includes('iron')) return "https://images.unsplash.com/photo-1518173946687-a4c8892bbd9f?auto=format&fit=crop&q=80&w=800";
+    if (t.includes('glass')) return "https://images.unsplash.com/photo-1514222045585-64d88e632831?auto=format&fit=crop&q=80&w=800";
+    if (t.includes('electronic') || t.includes('e-waste')) return "https://images.unsplash.com/photo-1550005973-54cac8ed9d27?auto=format&fit=crop&q=80&w=800";
+    if (t.includes('fabric') || t.includes('textile') || t.includes('cotton') || t.includes('denim')) return "https://images.unsplash.com/photo-1542272604-787c3835535d?auto=format&fit=crop&q=80&w=800";
+    if (t.includes('polyester')) return "https://images.unsplash.com/photo-1620799140408-edc6dcb6d633?auto=format&fit=crop&q=80&w=800";
+    return "https://images.unsplash.com/photo-1532996122724-e3c354a0b15b?auto=format&fit=crop&q=80&w=800"; // fallback waste image
+  };
+
+  const fetchListings = async () => {
+    setIsLoading(true);
+    try {
+      const response = await fetch('http://localhost:5000/api/listings');
+      if (response.ok) {
+        const data = await response.json();
+        const formattedItems = data.map(listing => {
+          // Calculate max bid if there are bids
+          const maxBid = listing.bids?.length > 0 
+            ? Math.max(...listing.bids.map(b => b.amount))
+            : listing.startingBid || 0;
+
+          return {
             id: listing._id,
             title: `${listing.condition} ${listing.wasteType} - ${listing.location}`,
             weight: `${listing.weight} kg`,
-            currentBid: listing.sellingMethod === 'auction' ? `${listing.startingBid?.toLocaleString()} LKR` : `${listing.price?.toLocaleString()} LKR`,
-            timeEnds: listing.sellingMethod === 'auction' ? "Active Bidding" : "Direct Sale",
+            currentBid: listing.sellingMethod === 'auction' ? `${maxBid.toLocaleString()} LKR` : `${listing.price?.toLocaleString()} LKR`,
+            rawHighestBid: maxBid,
+            bidsCount: listing.bids?.length || 0,
+            realBids: listing.bids || [],
+            timeEnds: listing.sellingMethod === 'auction' ? "Ends Soon" : "Direct Sale",
             type: listing.wasteType,
-            // Random default image for now as image upload to cloud storage isn't built yet
-            image: "https://images.unsplash.com/photo-1604937455095-ef2fe3d46fcd?auto=format&fit=crop&q=80&w=800",
-            sellingMethod: listing.sellingMethod
-          }));
-          setItems(formattedItems);
-        }
-      } catch (error) {
-        console.error("Failed to fetch listings:", error);
-      } finally {
-        setIsLoading(false);
+            condition: listing.condition,
+            location: listing.location,
+            sellerName: listing.sellerId?.name || 'Verified Source',
+            image: getMaterialImage(listing.wasteType),
+            sellingMethod: listing.sellingMethod,
+            sellerId: listing.sellerId?._id || listing.sellerId
+          };
+        });
+        setItems(formattedItems);
       }
-    };
+    } catch (error) {
+      console.error("Failed to fetch listings:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
+  useEffect(() => {
     fetchListings();
   }, []);
 
-  const handlePlaceBid = (amount) => {
-    // Note: To make bidding real, we would POST to an /api/listings/:id/bid endpoint here
-    setItems(items.map(item => 
-       item.id === selectedBidItem.id 
-       ? { ...item, currentBid: `${parseInt(amount).toLocaleString()} LKR` } 
-       : item
-    ));
+  const handlePlaceBid = async (amount) => {
+    try {
+      const response = await fetch(`http://localhost:5000/api/listings/${selectedBidItem.id}/bid`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${user.token}`
+        },
+        body: JSON.stringify({ amount: Number(amount) })
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        // Refresh the listings to show the new bid
+        await fetchListings();
+        setSelectedBidItem(null);
+      } else {
+        alert(data.message || 'Failed to place bid');
+      }
+    } catch (error) {
+      console.error("Bid error:", error);
+      alert('An error occurred while placing your bid.');
+    }
   };
 
   const filteredItems = items.filter(i => 
@@ -56,8 +102,8 @@ export default function Marketplace() {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="flex flex-col md:flex-row justify-between items-end mb-8 gap-4">
         <div>
-           <h1 className="text-3xl font-bold text-industrial-900">Waste Marketplace</h1>
-           <p className="text-industrial-500">Live auctions and direct sales from certified factories.</p>
+           <h1 className="text-3xl font-bold text-white">Waste Marketplace</h1>
+           <p className="text-industrial-400">Live auctions and direct sales from certified factories.</p>
         </div>
         <div className="flex gap-2 w-full md:w-auto">
            <div className="relative flex-1 md:w-64">
@@ -66,11 +112,11 @@ export default function Marketplace() {
                 placeholder="Search materials..." 
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2.5 bg-white border border-industrial-200 rounded-lg focus:ring-2 focus:ring-nature-500 outline-none"
+                className="w-full pl-10 pr-4 py-2.5 bg-industrial-900 border border-industrial-800 rounded-xl focus:ring-2 focus:ring-nature-500 outline-none text-white placeholder-industrial-500 shadow-inner"
               />
-              <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-industrial-400" />
+              <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-industrial-500" />
            </div>
-           <button className="px-4 py-2.5 bg-white border border-industrial-200 rounded-lg text-industrial-600 hover:bg-industrial-50">
+           <button className="px-4 py-2.5 bg-industrial-900 border border-industrial-800 rounded-xl text-industrial-400 hover:bg-industrial-800 hover:text-white transition-colors shadow-sm">
              <Filter size={20} />
            </button>
         </div>
@@ -81,7 +127,7 @@ export default function Marketplace() {
           <Loader className="animate-spin text-nature-500" size={48} />
         </div>
       ) : filteredItems.length === 0 ? (
-        <div className="text-center py-20 text-industrial-500 bg-white rounded-xl border border-industrial-100">
+        <div className="text-center py-20 text-industrial-400 bg-industrial-900/50 rounded-2xl border border-industrial-800 shadow-inner">
            No active listings found.
         </div>
       ) : (

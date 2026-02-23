@@ -26,7 +26,21 @@ export default function Register() {
     setError('');
     setIsLoading(true);
 
-    const result = await register(formData.name, formData.email, formData.password, formData.role);
+    const payload = {
+      name: formData.name,
+      email: formData.email,
+      password: formData.password,
+      role: formData.role
+    };
+
+    if (formData.role === 'company-seller') {
+      payload.companyDetails = {
+        brNumber: formData.brNumber,
+        address: formData.address
+      };
+    }
+
+    const result = await register(payload);
 
     if (result.success) {
       navigate('/dashboard');
@@ -38,7 +52,7 @@ export default function Register() {
   };
 
   return (
-    <div className="min-h-screen bg-industrial-900 flex flex-col items-center justify-center p-4">
+    <div className="min-h-screen bg-industrial-950 flex flex-col items-center justify-center p-4">
       {/* Return to home link */}
       <Link to="/" className="absolute top-6 left-6 text-industrial-400 hover:text-white transition-colors text-sm font-medium">
          &larr; Back to Home
@@ -47,7 +61,7 @@ export default function Register() {
       <motion.div 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="max-w-md w-full bg-industrial-800 rounded-2xl border border-white/10 p-8 shadow-2xl mt-12"
+        className="max-w-md w-full bg-industrial-900 rounded-2xl border border-industrial-800 p-8 shadow-2xl mt-12"
       >
         <div className="text-center mb-8">
           <div className="bg-nature-500 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
@@ -73,7 +87,7 @@ export default function Register() {
               value={formData.name}
               onChange={handleChange}
               required
-              className="w-full bg-industrial-900 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-nature-500 transition-shadow"
+              className="w-full bg-industrial-950 border border-industrial-800 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-nature-500 transition-shadow shadow-inner"
               placeholder="Your Name"
             />
           </div>
@@ -86,7 +100,7 @@ export default function Register() {
               value={formData.email}
               onChange={handleChange}
               required
-              className="w-full bg-industrial-900 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-nature-500 transition-shadow"
+              className="w-full bg-industrial-950 border border-industrial-800 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-nature-500 transition-shadow shadow-inner"
               placeholder="you@example.com"
             />
           </div>
@@ -99,7 +113,7 @@ export default function Register() {
               value={formData.password}
               onChange={handleChange}
               required
-              className="w-full bg-industrial-900 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-nature-500 transition-shadow"
+              className="w-full bg-industrial-950 border border-industrial-800 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-nature-500 transition-shadow shadow-inner"
               placeholder="••••••••"
               minLength={6}
             />
@@ -111,14 +125,46 @@ export default function Register() {
                name="role"
                value={formData.role}
                onChange={handleChange}
-               className="w-full bg-industrial-900 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-nature-500 transition-shadow"
+               className="w-full bg-industrial-950 border border-industrial-800 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-nature-500 transition-shadow shadow-inner"
              >
                 <option value="individual">Individual</option>
                 <option value="company-seller">Factory (Seller)</option>
                 <option value="company-buyer">Recycler (Buyer)</option>
-                <option value="admin">Platform Admin</option>
              </select>
           </div>
+
+          {formData.role === 'company-seller' && (
+            <motion.div 
+               initial={{ opacity: 0, height: 0 }} 
+               animate={{ opacity: 1, height: 'auto' }}
+               className="space-y-5"
+            >
+              <div>
+                <label className="block text-sm font-medium text-industrial-300 mb-2">Business Registration (BR) Number</label>
+                <input
+                  type="text"
+                  name="brNumber"
+                  value={formData.brNumber || ''}
+                  onChange={handleChange}
+                  required
+                  className="w-full bg-industrial-950 border border-industrial-800 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-nature-500 transition-shadow shadow-inner"
+                  placeholder="e.g. PV 12345"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-industrial-300 mb-2">Company Address</label>
+                <input
+                  type="text"
+                  name="address"
+                  value={formData.address || ''}
+                  onChange={handleChange}
+                  required
+                  className="w-full bg-industrial-950 border border-industrial-800 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-nature-500 transition-shadow shadow-inner"
+                  placeholder="123 Industrial Park, Colombo"
+                />
+              </div>
+            </motion.div>
+          )}
 
           <button
             type="submit"

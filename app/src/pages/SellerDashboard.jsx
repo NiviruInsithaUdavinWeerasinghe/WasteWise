@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import DashboardChart from '../components/DashboardChart.jsx';
 import HistoryTable from '../components/HistoryTable.jsx';
-import { Upload, Leaf, DollarSign } from 'lucide-react';
+import { Upload, Leaf, DollarSign, AlertTriangle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 export default function SellerDashboard({ onOpenUpload }) {
@@ -55,6 +55,16 @@ export default function SellerDashboard({ onOpenUpload }) {
 
   return (
     <div className="space-y-6">
+      {!user?.isApproved && (
+         <div className="bg-orange-500/10 border border-orange-500/50 rounded-xl p-6 mb-6 flex items-start gap-4">
+            <AlertTriangle className="text-orange-500 shrink-0 mt-1" size={24} />
+            <div>
+               <h3 className="text-orange-600 font-bold text-lg mb-1">Account pending admin approval</h3>
+               <p className="text-orange-700/80 text-sm">Your factory registration is currently under review by the platform administrators. You can explore the dashboard, but you will not be able to upload new waste listings or generate certificates until your Business Registration (BR) is verified.</p>
+            </div>
+         </div>
+      )}
+
       {/* Action Bar */}
       <div className="bg-gradient-to-r from-nature-800 to-nature-600 rounded-2xl p-8 text-white flex flex-col md:flex-row justify-between items-center shadow-lg shadow-nature-900/20">
          <div>
@@ -63,31 +73,36 @@ export default function SellerDashboard({ onOpenUpload }) {
          </div>
          <button 
            onClick={onOpenUpload}
-           className="mt-6 md:mt-0 bg-white text-nature-700 px-6 py-3 rounded-xl font-bold flex items-center gap-2 hover:bg-nature-50 transition-colors shadow-xl"
+           disabled={!user?.isApproved}
+           className={`mt-6 md:mt-0 px-6 py-3 rounded-xl font-bold flex items-center gap-2 transition-colors shadow-xl ${
+             !user?.isApproved 
+             ? 'bg-white/20 text-white/50 cursor-not-allowed border border-white/20'
+             : 'bg-white text-nature-700 hover:bg-nature-50'
+           }`}
          >
            <Upload size={20} /> Upload Waste
          </button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-industrial-200">
-           <div className="flex items-center gap-3 mb-2 text-nature-600">
+        <div className="bg-industrial-900 p-6 rounded-xl shadow-lg border border-industrial-800">
+           <div className="flex items-center gap-3 mb-2 text-nature-500">
              <Leaf size={20} /> <span className="font-bold text-sm">Waste Diverted</span>
            </div>
-           <div className="text-3xl font-bold text-industrial-900">{stats.totalWeight.toLocaleString()} kg</div>
-           <div className="text-xs text-industrial-400 mt-1">Total completed</div>
+           <div className="text-3xl font-bold text-white">{stats.totalWeight.toLocaleString()} kg</div>
+           <div className="text-xs text-industrial-500 mt-1">Total completed</div>
         </div>
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-industrial-200">
-           <div className="flex items-center gap-3 mb-2 text-blue-600">
+        <div className="bg-industrial-900 p-6 rounded-xl shadow-lg border border-industrial-800">
+           <div className="flex items-center gap-3 mb-2 text-blue-500">
              <DollarSign size={20} /> <span className="font-bold text-sm">Revenue Generated</span>
            </div>
-           <div className="text-3xl font-bold text-industrial-900">Rs {(stats.revenue).toLocaleString()}</div>
+           <div className="text-3xl font-bold text-white">Rs {(stats.revenue).toLocaleString()}</div>
         </div>
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-industrial-200">
-           <div className="flex items-center gap-3 mb-2 text-orange-600">
+        <div className="bg-industrial-900 p-6 rounded-xl shadow-lg border border-industrial-800">
+           <div className="flex items-center gap-3 mb-2 text-orange-500">
              <Upload size={20} /> <span className="font-bold text-sm">Active Listings</span>
            </div>
-           <div className="text-3xl font-bold text-industrial-900">{stats.activeListings}</div>
+           <div className="text-3xl font-bold text-white">{stats.activeListings}</div>
         </div>
       </div>
 
