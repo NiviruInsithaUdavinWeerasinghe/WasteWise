@@ -1,11 +1,22 @@
 import React, { useState } from 'react';
-import { Upload, CheckCircle, Loader, FileText, TrendingUp, AlertCircle, RefreshCw } from 'lucide-react';
+import { Upload, CheckCircle, Loader, FileText, TrendingUp, AlertCircle, RefreshCw, Send } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useAuth } from '../context/AuthContext';
 
 export default function UploadWizard() {
-  const [status, setStatus] = useState('idle');
+  const [status, setStatus] = useState('idle'); // idle, scanning, complete, details, submitting, success
   const [image, setImage] = useState(null);
   const [aiResult, setAiResult] = useState(null);
+  const { user } = useAuth();
+
+  const [formData, setFormData] = useState({
+    weight: '',
+    condition: 'Good',
+    location: '',
+    sellingMethod: 'auction',
+    price: '',
+    startingBid: ''
+  });
 
   const handleFileChange = async (e) => {
     const file = e.target.files[0];
@@ -13,33 +24,81 @@ export default function UploadWizard() {
       setImage(URL.createObjectURL(file));
       setStatus('scanning');
 
-      const formData = new FormData();
-      formData.append('file', file);
+      const data = new FormData();
+      data.append('file', file);
 
       try {
         const response = await fetch('http://127.0.0.1:5000/predict', {
             method: 'POST',
-            body: formData,
+            body: data,
         });
 
-        const data = await response.json();
+        const resData = await response.json();
         
-        if (data.error) throw new Error(data.error);
+        if (resData.error) throw new Error(resData.error);
 
-        setAiResult(data); 
+        setAiResult(resData); 
         setStatus('complete');
 
       } catch (error) {
         console.error("Error connecting to AI:", error);
-        alert("Error: Could not connect to the AI Brain. Is the black Python window running?");
+        alert("Error: Could not connect to the AI Brain. Is the ML service running?");
         setStatus('idle');
       }
+    }
+  };
+
+  const handleInputChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const submitListing = async (e) => {
+    e.preventDefault();
+    setStatus('submitting');
+
+    try {
+      const payload = {
+        wasteType: aiResult.top_prediction.material.replace('_', ' '),
+        weight: Number(formData.weight),
+        condition: formData.condition,
+        location: formData.location,
+        sellingMethod: formData.sellingMethod,
+        price: formData.sellingMethod === 'direct' ? Number(formData.price) : undefined,
+        startingBid: formData.sellingMethod === 'auction' ? Number(formData.startingBid) : undefined
+      };
+
+      const response = await fetch('http://localhost:5000/api/listings', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${user?.token}`
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to create listing');
+      }
+
+      setStatus('success');
+    } catch (error) {
+      console.error(error);
+      alert('Failed to submit listing. Please try again.');
+      setStatus('details');
     }
   };
 
   const resetUpload = () => {
     setImage(null);
     setAiResult(null);
+    setFormData({
+      weight: '',
+      condition: 'Good',
+      location: '',
+      sellingMethod: 'auction',
+      price: '',
+      startingBid: ''
+    });
     setStatus('idle');
   }
 
@@ -65,8 +124,8 @@ export default function UploadWizard() {
   };
 
   return (
-    <div className="max-w-2xl mx-auto bg-white rounded-2xl shadow-xl border border-industrial-100 overflow-hidden">
-      <div className="bg-industrial-900 px-6 py-4 flex justify-between items-center">
+    <div className="max-w-2xl mx-auto bg-white rounded-2xl shadow-xl border border-industrial-100 overflow-hidden max-h-[90vh] overflow-y-auto">
+      <div className="bg-industrial-900 px-6 py-4 flex justify-between items-center sticky top-0 z-10">
         <h2 className="text-white font-semibold text-lg flex items-center gap-2">
           <Upload size={20} className="text-nature-400" />
           Waste Identification Portal
@@ -194,8 +253,8 @@ export default function UploadWizard() {
               </div>
 
               <div className="flex gap-3">
-                 <button className="flex-1 bg-nature-600 text-white font-medium py-3 rounded-lg hover:bg-nature-700 transition-colors shadow-lg shadow-nature-200 capitalize">
-                    List as {aiResult.top_prediction.material.replace('_', ' ')}
+                 <button onClick={() => setStatus('details')} className="flex-1 bg-nature-600 text-white font-medium py-3 rounded-lg hover:bg-nature-700 transition-colors shadow-lg shadow-nature-200 capitalize">
+                    Proceed to Listing Details
                  </button>
                  <button onClick={resetUpload} className="flex items-center justify-center gap-2 px-6 py-3 border border-industrial-200 text-industrial-600 font-medium rounded-lg hover:bg-industrial-50 transition-colors">
                     <RefreshCw size={18} />
@@ -203,6 +262,99 @@ export default function UploadWizard() {
                  </button>
               </div>
             </motion.div>
+          )}
+
+          {status === 'details' && (
+            <motion.form
+              key="details"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              onSubmit={submitListing}
+              className="text-left space-y-4"
+            >
+              <h3 className="text-xl font-bold text-industrial-900 mb-4">Complete Listing Details</h3>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-industrial-700 mb-1">Weight (kg)</label>
+                  <input type="number" name="weight" required value={formData.weight} onChange={handleInputChange} className="w-full border border-industrial-200 rounded-lg py-2 px-3 focus:ring-2 focus:ring-nature-500 outline-none" min="1" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-industrial-700 mb-1">Condition</label>
+                  <select name="condition" value={formData.condition} onChange={handleInputChange} className="w-full border border-industrial-200 rounded-lg py-2 px-3 focus:ring-2 focus:ring-nature-500 outline-none">
+                    <option value="Excellent">Excellent</option>
+                    <option value="Good">Good</option>
+                    <option value="Fair">Fair</option>
+                    <option value="Mixed">Mixed</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-industrial-700 mb-1">Location</label>
+                <input type="text" name="location" required value={formData.location} onChange={handleInputChange} placeholder="e.g. Colombo, Sri Lanka" className="w-full border border-industrial-200 rounded-lg py-2 px-3 focus:ring-2 focus:ring-nature-500 outline-none" />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-industrial-700 mb-1">Selling Method</label>
+                <select name="sellingMethod" value={formData.sellingMethod} onChange={handleInputChange} className="w-full border border-industrial-200 rounded-lg py-2 px-3 focus:ring-2 focus:ring-nature-500 outline-none">
+                  <option value="auction">Auction (Bidding)</option>
+                  <option value="direct">Direct Sale (Fixed Price)</option>
+                </select>
+              </div>
+
+              {formData.sellingMethod === 'auction' ? (
+                <div>
+                  <label className="block text-sm font-medium text-industrial-700 mb-1">Starting Bid (LKR)</label>
+                  <input type="number" name="startingBid" required value={formData.startingBid} onChange={handleInputChange} className="w-full border border-industrial-200 rounded-lg py-2 px-3 focus:ring-2 focus:ring-nature-500 outline-none" min="1" />
+                </div>
+              ) : (
+                <div>
+                  <label className="block text-sm font-medium text-industrial-700 mb-1">Fixed Price (LKR)</label>
+                  <input type="number" name="price" required value={formData.price} onChange={handleInputChange} className="w-full border border-industrial-200 rounded-lg py-2 px-3 focus:ring-2 focus:ring-nature-500 outline-none" min="1" />
+                </div>
+              )}
+
+              <div className="flex gap-3 pt-4 border-t border-industrial-100">
+                 <button type="submit" className="flex-1 bg-nature-600 text-white font-medium py-3 rounded-lg hover:bg-nature-700 transition-colors shadow-lg flex justify-center items-center gap-2">
+                    <Send size={18} /> Publish Listing
+                 </button>
+                 <button type="button" onClick={() => setStatus('complete')} className="px-4 py-3 border border-industrial-200 text-industrial-600 font-medium rounded-lg hover:bg-industrial-50 transition-colors">
+                    Back
+                 </button>
+              </div>
+            </motion.form>
+          )}
+
+          {status === 'submitting' && (
+             <motion.div
+               key="submitting"
+               initial={{ opacity: 0 }}
+               animate={{ opacity: 1 }}
+               className="text-center py-12"
+             >
+               <Loader size={32} className="text-nature-600 animate-spin mx-auto mb-4" />
+               <h3 className="text-lg font-medium text-industrial-900">Publishing to Marketplace...</h3>
+             </motion.div>
+          )}
+
+          {status === 'success' && (
+             <motion.div
+               key="success"
+               initial={{ opacity: 0, scale: 0.9 }}
+               animate={{ opacity: 1, scale: 1 }}
+               className="text-center py-12"
+             >
+               <div className="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <CheckCircle size={32} />
+               </div>
+               <h3 className="text-2xl font-bold text-industrial-900 mb-2">Listing Published!</h3>
+               <p className="text-industrial-500 mb-8">Your waste material is now live on the marketplace.</p>
+               
+               <button onClick={resetUpload} className="bg-industrial-900 text-white font-medium px-6 py-3 rounded-lg hover:bg-industrial-800 transition-colors">
+                  Submit Another Item
+               </button>
+             </motion.div>
           )}
         </AnimatePresence>
       </div>

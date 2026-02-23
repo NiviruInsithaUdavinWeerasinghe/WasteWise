@@ -19,16 +19,72 @@ export function AuthProvider({ children }) {
     setLoading(false);
   }, []);
 
-  const login = (role, name) => {
-    // Mock login logic
-    const userData = {
-      id: Math.random().toString(36).substr(2, 9),
-      name: name,
-      role: role, // 'admin', 'company-buyer', 'company-seller', 'individual'
-      companyName: role.includes('company') ? `${name} Industries` : undefined
-    };
-    setUser(userData);
-    localStorage.setItem('wiseWasteUser', JSON.stringify(userData));
+  const login = async (email, password) => {
+    try {
+      const response = await fetch('http://localhost:5000/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        // Prepare user data to match what the frontend expects
+        const userData = {
+          id: data._id,
+          name: data.name,
+          email: data.email,
+          role: data.role,
+          token: data.token,
+          // Optional: Add company name logic based on role if needed
+          companyName: data.role.includes('company') ? `${data.name} Corp` : undefined
+        };
+        setUser(userData);
+        localStorage.setItem('wiseWasteUser', JSON.stringify(userData));
+        return { success: true };
+      } else {
+        return { success: false, message: data.message || 'Login failed' };
+      }
+    } catch (error) {
+      console.error("Login error", error);
+      return { success: false, message: 'Server error during login' };
+    }
+  };
+
+  const register = async (name, email, password, role) => {
+    try {
+      const response = await fetch('http://localhost:5000/api/auth/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ name, email, password, role }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        const userData = {
+          id: data._id,
+          name: data.name,
+          email: data.email,
+          role: data.role,
+          token: data.token,
+          companyName: data.role.includes('company') ? `${data.name} Corp` : undefined
+        };
+        setUser(userData);
+        localStorage.setItem('wiseWasteUser', JSON.stringify(userData));
+        return { success: true };
+      } else {
+        return { success: false, message: data.message || 'Registration failed' };
+      }
+    } catch (error) {
+      console.error("Registration error", error);
+      return { success: false, message: 'Server error during registration' };
+    }
   };
 
   const logout = () => {
@@ -39,6 +95,7 @@ export function AuthProvider({ children }) {
   const value = {
     user,
     login,
+    register,
     logout,
     loading
   };

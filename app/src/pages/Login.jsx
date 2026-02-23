@@ -1,52 +1,93 @@
-import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Factory, Truck, User, ShieldCheck } from 'lucide-react';
+import { LogIn, AlertCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 export default function Login() {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
 
-  const handleLogin = (role) => {
-    login(role, role === 'admin' ? 'Admin User' : 'Demo User');
-    navigate('/dashboard');
-  };
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+    setIsLoading(true);
 
-  const roles = [
-    { id: 'company-seller', label: 'Factory (Seller)', icon: Factory, color: 'bg-nature-500', desc: 'Sell waste, get certs' },
-    { id: 'company-buyer', label: 'Recycler (Buyer)', icon: Truck, color: 'bg-blue-500', desc: 'Bid on bulk materials' },
-    { id: 'individual', label: 'Individual', icon: User, color: 'bg-orange-500', desc: 'Small scale scrap' },
-    { id: 'admin', label: 'Platform Admin', icon: ShieldCheck, color: 'bg-industrial-700', desc: 'Manage system' },
-  ];
+    const result = await login(email, password);
+
+    if (result.success) {
+      navigate('/dashboard');
+    } else {
+      setError(result.message);
+    }
+    
+    setIsLoading(false);
+  };
 
   return (
     <div className="min-h-screen bg-industrial-900 flex items-center justify-center p-4">
-      <div className="max-w-4xl w-full">
-        <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold text-white mb-4">Welcome to WasteWise</h1>
-          <p className="text-industrial-400">Select your role to access the industrial circular economy.</p>
+      <motion.div 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="max-w-md w-full bg-industrial-800 rounded-2xl border border-white/10 p-8 shadow-2xl"
+      >
+        <div className="text-center mb-8">
+          <div className="bg-nature-500 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
+            <LogIn size={32} className="text-white" />
+          </div>
+          <h1 className="text-3xl font-bold text-white mb-2">Welcome Back</h1>
+          <p className="text-industrial-400">Sign in to your WasteWise account</p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {roles.map((role, index) => (
-            <motion.button
-              key={role.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.1 }}
-              onClick={() => handleLogin(role.id)}
-              className="group relative bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/10 rounded-2xl p-6 text-left transition-all hover:scale-105"
-            >
-              <div className={`${role.color} w-12 h-12 rounded-xl flex items-center justify-center text-white mb-4 shadow-lg group-hover:scale-110 transition-transform`}>
-                <role.icon size={24} />
-              </div>
-              <h3 className="text-xl font-bold text-white mb-1">{role.label}</h3>
-              <p className="text-sm text-industrial-400">{role.desc}</p>
-            </motion.button>
-          ))}
+        {error && (
+          <div className="mb-6 p-4 bg-red-500/10 border border-red-500/50 rounded-xl flex items-center text-red-500 text-sm">
+            <AlertCircle size={18} className="mr-2 flex-shrink-0" />
+            <p>{error}</p>
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div>
+            <label className="block text-sm font-medium text-industrial-300 mb-2">Email Address</label>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              className="w-full bg-industrial-900 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-nature-500 transition-shadow"
+              placeholder="you@example.com"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-industrial-300 mb-2">Password</label>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              className="w-full bg-industrial-900 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-nature-500 transition-shadow"
+              placeholder="••••••••"
+            />
+          </div>
+
+          <button
+            type="submit"
+            disabled={isLoading}
+            className={`w-full bg-nature-500 hover:bg-nature-600 text-white font-bold py-3 px-4 rounded-xl transition-colors shadow-lg ${isLoading ? 'opacity-70 cursor-not-allowed' : ''}`}
+          >
+            {isLoading ? 'Signing in...' : 'Sign In'}
+          </button>
+        </form>
+        
+        <div className="mt-6 text-center text-sm text-industrial-400">
+          <p>Don't have an account? <Link to="/register" className="text-nature-400 cursor-pointer hover:underline">Register instead</Link></p>
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 }

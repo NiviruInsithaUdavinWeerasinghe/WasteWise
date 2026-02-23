@@ -1,54 +1,45 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import AuctionCard from '../components/AuctionCard';
 import BidModal from '../components/BidModal';
-import { Search, Filter } from 'lucide-react';
+import { Search, Filter, Loader } from 'lucide-react';
 
 export default function Marketplace() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedBidItem, setSelectedBidItem] = useState(null);
+  const [items, setItems] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Mock Items
-  const [items, setItems] = useState([
-    {
-      id: 1,
-      title: "Sorted Cotton Offcuts - Mixed Colors",
-      weight: "500 kg",
-      currentBid: "45,000 LKR",
-      timeEnds: "2h 15m",
-      type: "Cotton",
-      image: "https://images.unsplash.com/photo-1604937455095-ef2fe3d46fcd?auto=format&fit=crop&q=80&w=800"
-    },
-    {
-      id: 2,
-      title: "Polyester Rolls - Surplus Grade B",
-      weight: "120 kg",
-      currentBid: "18,500 LKR",
-      timeEnds: "45m",
-      type: "Polyester",
-      image: "https://images.unsplash.com/photo-1620799140408-edc6dcb6d633?auto=format&fit=crop&q=80&w=800"
-    },
-    {
-      id: 3,
-      title: "Denim Scraps - High Density",
-      weight: "1,200 kg",
-      currentBid: "112,000 LKR",
-      timeEnds: "5h 00m",
-      type: "Denim",
-      image: "https://images.unsplash.com/photo-1582095133179-bfd08e2fc6b2?auto=format&fit=crop&q=80&w=800"
-    },
-    {
-       id: 4,
-       title: "White Linen Cut-offs - Pure",
-       weight: "300 kg",
-       currentBid: "85,000 LKR",
-       timeEnds: "1d 4h",
-       type: "Linen",
-       image: "https://images.unsplash.com/photo-1594913785162-e6785e7914e6?auto=format&fit=crop&q=80&w=800"
-    }
-  ]);
+  useEffect(() => {
+    const fetchListings = async () => {
+      try {
+        const response = await fetch('http://localhost:5000/api/listings');
+        if (response.ok) {
+          const data = await response.json();
+          const formattedItems = data.map(listing => ({
+            id: listing._id,
+            title: `${listing.condition} ${listing.wasteType} - ${listing.location}`,
+            weight: `${listing.weight} kg`,
+            currentBid: listing.sellingMethod === 'auction' ? `${listing.startingBid?.toLocaleString()} LKR` : `${listing.price?.toLocaleString()} LKR`,
+            timeEnds: listing.sellingMethod === 'auction' ? "Active Bidding" : "Direct Sale",
+            type: listing.wasteType,
+            // Random default image for now as image upload to cloud storage isn't built yet
+            image: "https://images.unsplash.com/photo-1604937455095-ef2fe3d46fcd?auto=format&fit=crop&q=80&w=800",
+            sellingMethod: listing.sellingMethod
+          }));
+          setItems(formattedItems);
+        }
+      } catch (error) {
+        console.error("Failed to fetch listings:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchListings();
+  }, []);
 
   const handlePlaceBid = (amount) => {
-    // Update local state to reflect new bid
+    // Note: To make bidding real, we would POST to an /api/listings/:id/bid endpoint here
     setItems(items.map(item => 
        item.id === selectedBidItem.id 
        ? { ...item, currentBid: `${parseInt(amount).toLocaleString()} LKR` } 
@@ -66,7 +57,7 @@ export default function Marketplace() {
       <div className="flex flex-col md:flex-row justify-between items-end mb-8 gap-4">
         <div>
            <h1 className="text-3xl font-bold text-industrial-900">Waste Marketplace</h1>
-           <p className="text-industrial-500">Live auctions from certified factories.</p>
+           <p className="text-industrial-500">Live auctions and direct sales from certified factories.</p>
         </div>
         <div className="flex gap-2 w-full md:w-auto">
            <div className="relative flex-1 md:w-64">
@@ -85,15 +76,25 @@ export default function Marketplace() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6">
-        {filteredItems.map(item => (
-          <AuctionCard 
-             key={item.id} 
-             {...item} 
-             onBid={() => setSelectedBidItem(item)}
-          />
-        ))}
-      </div>
+      {isLoading ? (
+        <div className="flex justify-center items-center py-20">
+          <Loader className="animate-spin text-nature-500" size={48} />
+        </div>
+      ) : filteredItems.length === 0 ? (
+        <div className="text-center py-20 text-industrial-500 bg-white rounded-xl border border-industrial-100">
+           No active listings found.
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6">
+          {filteredItems.map(item => (
+            <AuctionCard 
+               key={item.id} 
+               {...item} 
+               onBid={() => setSelectedBidItem(item)}
+            />
+          ))}
+        </div>
+      )}
 
       {selectedBidItem && (
         <BidModal 

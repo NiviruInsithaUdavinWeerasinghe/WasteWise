@@ -6,6 +6,7 @@ import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import Home from './pages/Home';
 import Login from './pages/Login';
+import Register from './pages/Register';
 import AdminDashboard from './pages/AdminDashboard';
 import SellerDashboard from './pages/SellerDashboard';
 import BuyerDashboard from './pages/BuyerDashboard';
@@ -54,6 +55,7 @@ function AppContent() {
           <Routes>
             <Route path="/" element={<Home onOpenUpload={() => setShowUpload(true)} />} />
             <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
             <Route path="/marketplace" element={<Marketplace />} />
             
             <Route path="/dashboard" element={
