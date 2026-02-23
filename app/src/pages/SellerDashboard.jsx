@@ -1,6 +1,6 @@
 import React from 'react';
-import DashboardChart from '../components/DashboardChart.js';
-import HistoryTable from '../components/HistoryTable.js';
+import DashboardChart from '../components/DashboardChart.jsx';
+import HistoryTable from '../components/HistoryTable.jsx';
 import { Upload, Leaf, DollarSign } from 'lucide-react';
 
 export default function SellerDashboard({ onOpenUpload }) {

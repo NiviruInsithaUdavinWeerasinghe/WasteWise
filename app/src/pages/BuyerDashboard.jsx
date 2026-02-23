@@ -1,6 +1,6 @@
 import React from 'react';
-import HistoryTable from '../components/HistoryTable.js';
-import AuctionCard from '../components/AuctionCard.js';
+import HistoryTable from '../components/HistoryTable.jsx';
+import AuctionCard from '../components/AuctionCard.jsx';
 
 export default function BuyerDashboard() {
   const myBids = [

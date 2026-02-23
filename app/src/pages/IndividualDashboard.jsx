@@ -1,5 +1,5 @@
 import React from 'react';
-import HistoryTable from '../components/HistoryTable.js';
+import HistoryTable from '../components/HistoryTable.jsx';
 import { ShoppingBag, Star } from 'lucide-react';
 
 export default function IndividualDashboard() {
