@@ -1,0 +1,94 @@
+WasteWise Project Structure & File Descriptions
+
+This document outlines the purpose of all handwritten folders and files in the WasteWise project. It is divided into the three main modules: Frontend (app), Backend (backend), and Machine Learning Service (ml_service).
+
+=======================================================
+1. FRONTEND APP (Folder: /app)
+=======================================================
+The `/app` folder contains the React frontend code, built with Vite and styled with Tailwind CSS.
+
+Files in /app:
+- package.json & package-lock.json: Define JavaScript dependencies and scripts for the frontend application.
+- vite.config.js: Configuration file for the Vite build tool.
+- tailwind.config.js & postcss.config.js: Configuration files customized for the Tailwind CSS framework.
+- index.html: The foundational HTML template that hosts the React application.
+- README.md: Documentation specific to running and developing the frontend application.
+
+Folder: /app/public
+- Contains public static assets that are served directly to the browser without processing by Vite.
+
+Folder: /app/src
+This is the root directory for all handwritten React source code.
+- App.jsx: The core React component that wraps the application, typically handling routing schemas and layout wrappers.
+- App.css: Global CSS styles imported specifically into the App component.
+- index.jsx: The main entry point for the React code. It imports React and mounts the App component to the DOM in index.html.
+- index.css: The base CSS file, normally containing the Tailwind directives (@tailwind base, components, utilities).
+- setupTests.jsx & App.test.jsx: Configuration and placeholder examples for component unit testing.
+- reportWebVitals.jsx: A standardized utility for measuring application performance and web vitals.
+
+Folder: /app/src/components
+Contains reusable UI building blocks used across various sections and pages of the site.
+- AuctionCard.jsx: Visual tile/card displaying details for a specific waste item available in the marketplace/auction.
+- BidModal.jsx: A popup modal component allowing users to interactively place a bid on a waste item.
+- DashboardChart.jsx: A data visualization component utilized to display analytics data on user dashboards.
+- Footer.jsx: The standard footer navigated and displayed at the bottom of the platform.
+- HistoryTable.jsx: A structured table component that lists transaction or bidding histories for the user.
+- Navbar.jsx: The primary top navigation bar for seamlessly routing across the application.
+- UploadWizard.jsx: An interactive multi-step form assisting users in uploading detailed new waste item listings.
+
+Folder: /app/src/pages
+Contains the high-level components that correspond to individual screen views and URL routes.
+- AdminDashboard.jsx: The comprehensive management dashboard view tailored for administrative users.
+- BuyerDashboard.jsx: The customized dashboard experience for users registered as waste buyers.
+- Home.jsx: The main landing page of the WasteWise application containing platform hooks and overview.
+- IndividualDashboard.jsx: A specialized dashboard customized for general individual users participating on the platform.
+- Login.jsx: The screen hosting the user authentication form to sign into returning accounts.
+- Marketplace.jsx: The primary gallery screen mapping out available waste listings for potential buyers.
+- Register.jsx: The sign-up form screen for onboarding new members.
+- SellerDashboard.jsx: The specific view empowering sellers to successfully manage and curate their waste listings.
+
+Folder: /app/src/context
+Contains React Context providers to handle global state sharing across nested components without prop-drilling.
+- AuthContext.jsx: Manages and provides user authentication status and profile payload context globally.
+
+Folder: /app/src/assets
+- Houses static media explicitly imported by components, including logos like 'logo(v2.2).png'.
+
+=======================================================
+2. BACKEND API (Folder: /backend)
+=======================================================
+The `/backend` directory contains the Node.js operating with Express serving as the main database API and intermediary server.
+
+Files in /backend:
+- server.js: The crucial application entry file. It initializes the Express app, establishes the MongoDB connection, registers middlewares, appends routes, and opens the listener port.
+- package.json & package-lock.json: Lists the required Node.js libraries (Express, Mongoose, etc.) and npm scripts.
+- .env: Houses hidden environment configurations like database URIs, target ports, and secret keys.
+
+Folder: /backend/controllers
+Where the main business logic and core functionalities for the API are stored.
+- authController.js: Carries the logic executing user registration formatting, login verification, and token generation.
+- listingController.js: Carries the logic managing listing lifecycles including creating new waste listings, fetching listings for the frontend, editing entries, and processing bids.
+
+Folder: /backend/middleware
+Contains intermediary Express functions triggered during HTTP requests before arriving at the controller.
+- authMiddleware.js: Functional layer acting as a guard to intercept requests, parse security tokens, and authorize access to restricted private routes.
+
+Folder: /backend/models
+Houses the strictly defined Mongoose schemas specifying data shapes stored inside MongoDB.
+- Listing.js: Architecture defining the fields and relations for a waste listing and bid records.
+- User.js: Architecture specifying fields for user accounts, hashed passwords, and profile roles.
+
+Folder: /backend/routes
+Responsible for declaring API endpoints mapping HTTP addresses to their appropriate controller functions.
+- authRoutes.js: Connects endpoints like `/login` and `/register` directly to the `authController`.
+- listingRoutes.js: Connects endpoints handling waste item activities (e.g., retrieving lists, posting new data) directly to `listingController` operations.
+
+=======================================================
+3. MACHINE LEARNING SERVICE (Folder: /ml_service)
+=======================================================
+The `/ml_service` behaves as a specialized standalone backend using Python to provide Artificial Intelligence operations to evaluate waste imagery.
+
+Files in /ml_service:
+- app.py: The functional Python server file (likely Flask or FastAPI) setting up API endpoints. The Node.js backend can post inputs here to receive ML-driven classifications.
+- *.h5, *.keras (e.g. wastewise_model_resnet_finetuned.keras): Large serialized binary files mapping out weights and structures for the pre-trained neural networks used explicitly by app.py for predicting waste conditions.
+- .gitattributes: Configuration ensuring large model datasets are efficiently handled tracking via git, commonly linked to git-lfs protocols.
