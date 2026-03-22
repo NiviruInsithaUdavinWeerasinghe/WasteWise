@@ -5,6 +5,12 @@ from tensorflow.keras.models import load_model
 from tensorflow.keras.preprocessing.image import img_to_array
 from PIL import Image
 import io
+import json
+import google.generativeai as genai
+
+# Configure Gemini API
+genai.configure(api_key="AIzaSyDj-l64WZ9jTafkseyvUkd4cdJKpLJNOK4")
+vision_model = genai.GenerativeModel('gemini-2.5-flash')
 
 app = Flask(__name__)
 CORS(app)
@@ -52,9 +58,31 @@ def predict():
             
         results.sort(key=lambda x: x["confidence"], reverse=True)
 
+        # ====== Gemini AI Integration for Quality Grade ======
+        try:
+            prompt = """Analyze this image of waste fabric/material. Estimate the quality grade strictly based on these rules:
+- 'Grade A': Clean, high-quality fabric off-cuts, pristine condition, no heavy fraying, zero stains, or tears. (Clean roll ends and off-cuts are Grade A).
+- 'Grade B': Noticeable edge fraying, slight marks, or minor discoloration, but moderately usable.
+- 'Grade C': Heavily contaminated, dirty, stained, or shredded.
+Return ONLY a valid JSON object exactly like this: {"quality_grade": "Grade A"}."""
+            # The python generativeai SDK accepts PIL Image directly
+            response = vision_model.generate_content([prompt, image])
+            content_text = response.text.replace("```json", "").replace("```", "").strip()
+            print("Gemini Raw Response:", content_text)
+            grade_data = json.loads(content_text)
+            quality_grade = grade_data.get("quality_grade", "Grade B")
+        except Exception as e:
+            error_msg = str(e)
+            print("Gemini Vision Error:", error_msg)
+            with open("gemini_error.log", "w") as f:
+                f.write(error_msg)
+            quality_grade = f"FAIL: {error_msg[:12]}"  # Truncate to fit UI
+        # =====================================================
+
         return jsonify({
             "top_prediction": results[0],
-            "breakdown": results
+            "breakdown": results,
+            "quality_grade": quality_grade
         })
 
     except Exception as e:

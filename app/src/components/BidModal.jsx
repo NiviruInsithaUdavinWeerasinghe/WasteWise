@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, TrendingUp, CheckCircle, Clock, MapPin, Package, Shield, Info, User, ChevronRight, FileSignature } from 'lucide-react';
+import { X, TrendingUp, CheckCircle, Clock, MapPin, Package, Shield, Info, User, Archive, FileSignature } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 export default function BidModal({ isOpen, onClose, item, onPlaceBid }) {
@@ -13,26 +13,16 @@ export default function BidModal({ isOpen, onClose, item, onPlaceBid }) {
 
   useEffect(() => {
     if (isOpen && item) {
-       // Generate dummy live bids based on the item's current top bid
-       const base = item.rawHighestBid || 1000;
-       const mockHistory = [
-         { id: 1, name: "EcoRecycle Corp", amount: base, time: "Just now" },
-         { id: 2, name: "Textile Innovations", amount: Math.floor(base * 0.95), time: "2 mins ago" },
-         { id: 3, name: "Global Fibers Ltd", amount: Math.floor(base * 0.88), time: "15 mins ago" },
-         { id: 4, name: "Oceanic Threads", amount: Math.floor(base * 0.82), time: "1 hour ago" },
-         { id: 5, name: "GreenWay Solutions", amount: Math.floor(base * 0.75), time: "3 hours ago" }
-       ];
-       // Incorporate real bids if they exist and are passed
        if (item.realBids && item.realBids.length > 0) {
            const formattedReal = item.realBids.map((b, i) => ({
               id: `real-${i}`,
               name: b.userId?.name || `Bidder #${String(b.userId).slice(-4)}`,
               amount: b.amount,
-              time: new Date(b.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})
+              time: new Date(b.timestamp || b.createdAt || new Date()).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})
            })).reverse();
-           setLiveBids([...formattedReal, ...mockHistory].slice(0, 10));
+           setLiveBids(formattedReal);
        } else {
-           setLiveBids(mockHistory);
+           setLiveBids([]);
        }
     }
   }, [isOpen, item]);
@@ -45,28 +35,36 @@ export default function BidModal({ isOpen, onClose, item, onPlaceBid }) {
 
   if (!isOpen || !item) return null;
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    setIsSuccess(true);
-    
-    // Optimistically add to live feed
-    setLiveBids(prev => [{
-      id: Date.now(),
-      name: user?.name || "You",
-      amount: Number(amount),
-      time: "Just now",
-      isYou: true
-    }, ...prev]);
+    try {
+      // First await the actual API call to safely record the bid!
+      await onPlaceBid(amount);
+      
+      // If success, display the verified success splash
+      setIsSuccess(true);
+      
+      // Update UI optimistically for the duration of the success animation
+      setLiveBids(prev => [{
+        id: Date.now(),
+        name: user?.name || "You",
+        amount: Number(amount),
+        time: "Just now",
+        isYou: true
+      }, ...prev]);
 
-    setTimeout(() => {
-      onPlaceBid(amount);
-      setIsSuccess(false);
-      setAmount('');
-      onClose();
-    }, 2000);
+      setTimeout(() => {
+        setIsSuccess(false);
+        setAmount('');
+        onClose();
+      }, 2000);
+    } catch(error) {
+       console.error("Bid placing halted:", error);
+    }
   };
 
-  const minBid = (item.rawHighestBid || 0) + (item.rawHighestBid > 10000 ? 500 : 100);
+  const currentMinIncrease = Number(item.minBidIncrease) || 0;
+  const minBid = liveBids.length > 0 ? (Number(liveBids[0].amount) + currentMinIncrease) : (Number(item.startingBid) || 100);
 
   return createPortal(
     <AnimatePresence>
@@ -137,7 +135,7 @@ export default function BidModal({ isOpen, onClose, item, onPlaceBid }) {
                        </div>
                        <div className="bg-industrial-900 border border-industrial-800 rounded-xl p-4 text-center">
                           <Info size={20} className="text-orange-400 mx-auto mb-2" />
-                          <p className="text-xs text-industrial-500 uppercase tracking-wider font-bold mb-1">Condition</p>
+                          <p className="text-xs text-industrial-500 uppercase tracking-wider font-bold mb-1">Quality Grade</p>
                           <p className="text-white font-bold text-sm truncate">{item.condition || 'Factory Grade'}</p>
                        </div>
                        <div className="bg-industrial-900 border border-industrial-800 rounded-xl p-4 text-center">
@@ -150,8 +148,8 @@ export default function BidModal({ isOpen, onClose, item, onPlaceBid }) {
                     {/* Description */}
                     <div>
                        <h3 className="text-lg font-bold text-white mb-3 flex items-center gap-2"><FileSignature size={18} className="text-industrial-400"/> Lot Information</h3>
-                       <p className="text-industrial-400 text-sm leading-relaxed">
-                         This lot consists of {item.weight} of premium {item.condition?.toLowerCase() || 'grade'} {item.type?.toLowerCase() || 'waste materials'}, sourced directly from our verified manufacturing partner network. The materials have been audited for quality and are ready for immediate dispatch upon contract finalization.
+                       <p className="text-industrial-400 text-sm leading-relaxed whitespace-pre-wrap">
+                         {item.description || "No description provided."}
                        </p>
                     </div>
 
@@ -165,7 +163,7 @@ export default function BidModal({ isOpen, onClose, item, onPlaceBid }) {
                             {item.sellerName || 'Verified Factory Source'} 
                             <CheckCircle size={14} className="text-blue-500" />
                           </h4>
-                          <p className="text-industrial-500 text-xs">Sustainability Partner Level: Gold</p>
+                          <p className="text-industrial-500 text-xs text-nature-500">Verified Seller Network</p>
                        </div>
                        <button className="text-xs font-bold text-industrial-400 hover:text-white transition-colors bg-industrial-800 px-3 py-1.5 rounded-lg border border-industrial-700">View Profile</button>
                     </div>
@@ -178,8 +176,8 @@ export default function BidModal({ isOpen, onClose, item, onPlaceBid }) {
                  {/* Bidding Header */}
                  <div className="p-6 border-b border-industrial-800 bg-industrial-950/30">
                     <div className="flex justify-between items-center mb-4">
-                       <span className="flex items-center gap-2 text-orange-400 bg-orange-500/10 px-3 py-1.5 rounded-full text-xs font-bold border border-orange-500/20">
-                          <Clock size={14} className="animate-pulse" /> {item.timeEnds || 'Ends Soon'}
+                       <span className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold border ${item.isClosed ? 'text-red-400 bg-red-500/10 border-red-500/20' : 'text-orange-400 bg-orange-500/10 border-orange-500/20'}`}>
+                          <Clock size={14} className={item.isClosed ? '' : 'animate-pulse'} /> {item.timeEnds || 'Ends Soon'}
                        </span>
                        <span className="text-industrial-400 text-xs font-medium">{liveBids.length} Bids Placed</span>
                     </div>
@@ -225,7 +223,12 @@ export default function BidModal({ isOpen, onClose, item, onPlaceBid }) {
 
                  {/* Bid Action Area */}
                  <div className="p-6 border-t border-industrial-800 bg-industrial-950/80 backdrop-blur-md">
-                    {user?.role === 'company-seller' ? (
+                    {item.isClosed ? (
+                       <div className="bg-industrial-900 p-4 rounded-xl text-center border border-industrial-800 shadow-inner">
+                          <p className="text-sm font-bold text-red-400">Auction Closed</p>
+                          <p className="text-xs text-industrial-500 mt-1">This listing is no longer accepting bids.</p>
+                       </div>
+                    ) : user?.role === 'company-seller' ? (
                        <div className="bg-industrial-900 p-4 rounded-xl text-center border border-industrial-800 shadow-inner">
                           <p className="text-sm font-bold text-industrial-300">Observer Mode</p>
                           <p className="text-xs text-industrial-500 mt-1">Sellers cannot participate in bidding.</p>

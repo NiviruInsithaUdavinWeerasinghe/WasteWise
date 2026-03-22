@@ -33,3 +33,6 @@ yarn-error.log*
 # Ignore machine learning models
 *.h5
 *.keras
+
+# Explicitly allow the fine-tuned model tracked by LFS
+!ml_service/wastewise_model_resnet_finetuned.keras

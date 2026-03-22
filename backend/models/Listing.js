@@ -10,6 +10,10 @@ const listingSchema = new mongoose.Schema({
     type: String,
     required: true
   },
+  imageUrl: {
+    type: String,
+    required: false
+  },
   weight: {
     type: Number,
     required: true
@@ -35,9 +39,32 @@ const listingSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['active', 'sold'],
+    enum: ['active', 'sold', 'pending_payment', 'failed_payment'],
     default: 'active',
     required: true
+  },
+  pickupResponsibility: {
+    type: String,
+    enum: ['Buyer Arranges Pickup', 'Seller Delivers', 'Platform Logistics'],
+    required: true,
+    default: 'Buyer Arranges Pickup'
+  },
+  minBidIncrease: {
+    type: Number,
+    default: 0
+  },
+  description: {
+    type: String,
+    trim: true
+  },
+  endTime: {
+    type: Date
+  },
+  paymentDeadline: {
+    type: Date
+  },
+  paymentIntentId: {
+    type: String
   },
   bids: [{
     userId: {

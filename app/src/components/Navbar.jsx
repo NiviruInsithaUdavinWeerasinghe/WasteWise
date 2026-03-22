@@ -1,5 +1,5 @@
-import React from 'react';
-import { Leaf, Recycle, Menu, LogOut, User } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Leaf, Recycle, Menu, LogOut, User, Bell, Check } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, useLocation } from 'react-router-dom';
 import logoUrl from '../assets/logo(v2.2).png';
@@ -8,6 +8,33 @@ export default function Navbar({ toggleUpload, showUpload }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const [notifications, setNotifications] = useState([]);
+  const [showDropdown, setShowDropdown] = useState(false);
+
+  useEffect(() => {
+    if (user?.token) fetchNotifications();
+  }, [user]);
+
+  const fetchNotifications = async () => {
+    try {
+      const res = await fetch('http://localhost:5000/api/notifications', {
+        headers: { Authorization: `Bearer ${user.token}` }
+      });
+      if (res.ok) setNotifications(await res.json());
+    } catch(e) { console.error('Failed to load notifications', e); }
+  };
+
+  const handleMarkAsRead = async (id) => {
+    try {
+      await fetch(`http://localhost:5000/api/notifications/${id}/read`, {
+        method: 'PATCH',
+        headers: { Authorization: `Bearer ${user.token}` }
+      });
+      setNotifications(notifications.map(n => n._id === id ? { ...n, isRead: true } : n));
+    } catch(e) {}
+  };
+
+  const unreadCount = notifications.filter(n => !n.isRead).length;
 
   const handleLogout = () => {
     logout();
@@ -43,10 +70,42 @@ export default function Navbar({ toggleUpload, showUpload }) {
           <div className="flex items-center gap-4">
              {user ? (
                <>
+                 <div className="relative">
+                   <button onClick={() => setShowDropdown(!showDropdown)} className="relative p-2 text-industrial-400 hover:text-white transition-colors" title="Notifications">
+                     <Bell size={20} />
+                     {unreadCount > 0 && <span className="absolute top-1 right-1 flex items-center justify-center w-4 h-4 text-[10px] font-bold text-white bg-red-500 rounded-full">{unreadCount}</span>}
+                   </button>
+                   {showDropdown && (
+                     <div className="absolute right-0 mt-3 w-80 bg-industrial-900 border border-industrial-800 rounded-xl shadow-2xl z-50 overflow-hidden">
+                       <div className="p-4 border-b border-industrial-800 bg-industrial-950/50 flex justify-between items-center">
+                         <h3 className="font-bold text-white">Notifications</h3>
+                       </div>
+                       <div className="max-h-80 overflow-y-auto">
+                         {notifications.length === 0 ? (
+                           <p className="p-6 text-center text-industrial-500 text-sm">No new notifications.</p>
+                         ) : notifications.map(n => (
+                           <div key={n._id} className={`p-4 border-b border-industrial-800 flex gap-3 ${!n.isRead ? 'bg-industrial-800/30 border-l-2 border-l-nature-500' : ''}`}>
+                             <div className="flex-1">
+                               <p className="text-sm text-industrial-200">{n.message}</p>
+                               <span className="text-[10px] text-industrial-500 mt-2 block">{new Date(n.createdAt).toLocaleString()}</span>
+                             </div>
+                             {!n.isRead && (
+                               <button onClick={() => handleMarkAsRead(n._id)} className="text-nature-500 hover:text-nature-400 p-1 self-start" title="Mark as read">
+                                 <Check size={16} />
+                               </button>
+                             )}
+                           </div>
+                         ))}
+                       </div>
+                     </div>
+                   )}
+                 </div>
                  {user.role === 'company-seller' && (
                     <button 
-                        onClick={toggleUpload}
-                        className="hidden md:flex items-center gap-2 px-5 py-2.5 bg-nature-600 hover:bg-nature-700 text-white rounded-full transition-all shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
+                        onClick={user.isApproved ? toggleUpload : null}
+                        disabled={!user.isApproved}
+                        className={`hidden md:flex items-center gap-2 px-5 py-2.5 rounded-full transition-all shadow-md ${!user.isApproved ? 'bg-industrial-800 text-industrial-500 cursor-not-allowed border border-industrial-700' : 'bg-nature-600 hover:bg-nature-700 text-white hover:shadow-lg transform hover:-translate-y-0.5'}`}
+                        title={!user.isApproved ? "Account pending admin approval" : "Sell Waste"}
                     >
                     <Leaf size={18} />
                     <span className="font-medium">{showUpload ? 'Close Portal' : 'Sell Waste'}</span>

@@ -1,39 +1,11 @@
-import React from 'react';
-import { ArrowUpRight, ArrowDownLeft, Shield, CheckCircle, RefreshCw, Box, AlertTriangle, ShoppingBag, Clock, XCircle, FileSignature } from 'lucide-react';
-import { motion } from 'framer-motion';
+import React, { useState } from 'react';
+import { ArrowUpRight, ArrowDownLeft, Shield, CheckCircle, RefreshCw, Box, AlertTriangle, ShoppingBag, Clock, XCircle, FileSignature, X, Archive } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
-export default function HistoryTable({ role }) {
-  // Enhanced Mock Data based on role
-  const adminData = [
-    { id: 1, type: 'Verification', item: 'Factory Reg #849', date: '2025-10-24 14:30', amount: '-', status: 'Approved', partner: 'TexLanka Pvt Ltd' },
-    { id: 2, type: 'System', item: 'Weekly Certificate Batch', date: '2025-10-23 09:00', amount: '1,420 Certs', status: 'Completed', partner: 'Auto-Issue' },
-    { id: 3, type: 'Flagged', item: 'Suspicious Bid Activity', date: '2025-10-22 16:45', amount: 'LKR 4.5M', status: 'Investigating', partner: 'User ID: 90214' },
-    { id: 4, type: 'Verification', item: 'Factory Reg #850', date: '2025-10-22 11:20', amount: '-', status: 'Pending', partner: 'Oceanic Threads' },
-    { id: 5, type: 'Transaction', item: 'Platform Fee Collection', date: '2025-10-21 23:59', amount: 'LKR 125,400', status: 'Completed', partner: 'Payment Gateway' },
-  ];
-
-  const sellerData = [
-    { id: 1, type: 'Sale', item: 'Cotton Offcuts 500kg', date: '2025-10-15', amount: '45,000 LKR', status: 'Completed', partner: 'EcoRecycle Pvt Ltd' },
-    { id: 2, type: 'Bid', item: 'Polyester Rolls', date: '2025-10-18', amount: '12,500 LKR', status: 'Pending', partner: 'TexFab Lanka' },
-    { id: 3, type: 'Certificate', item: 'Green Cert #4021', date: '2025-10-14', amount: '-', status: 'Verified', partner: 'WasteWise Authority' },
-    { id: 4, type: 'Sale', item: 'Denim Scraps', date: '2025-10-10', amount: '88,000 LKR', status: 'Completed', partner: 'Global Fibers' },
-  ];
-
-  const individualData = [
-    { id: 1, type: 'Purchase', item: 'Cotton Offcuts 5kg', date: '2025-10-24 10:30', amount: '450 LKR', status: 'Ready for Pickup', partner: 'EcoRecycle Pvt Ltd' },
-    { id: 2, type: 'Bid', item: 'Denim Scraps 2kg', date: '2025-10-22 14:15', amount: '800 LKR', status: 'Outbid', partner: 'TexLanka Pvt Ltd' },
-    { id: 3, type: 'Bid', item: 'Polyester Threads 1kg', date: '2025-10-20 09:45', amount: '150 LKR', status: 'Pending', partner: 'Oceanic Threads' },
-    { id: 4, type: 'Purchase', item: 'Mixed Fabric Bundle 3kg', date: '2025-10-18 16:20', amount: '600 LKR', status: 'Won', partner: 'Global Fibers' },
-  ];
-
-  const companyBuyerData = [
-    { id: 1, type: 'Contract', item: 'Polyester Rolls 1,500kg', date: '2025-10-24', amount: '185,000 LKR', status: 'Completed', partner: 'TexFab Lanka' },
-    { id: 2, type: 'Purchase', item: 'Cotton Offcuts 500kg', date: '2025-10-23', amount: '45,000 LKR', status: 'Pending Delivery', partner: 'EcoRecycle Pvt Ltd' },
-    { id: 3, type: 'Bid', item: 'Denim Bales 800kg', date: '2025-10-21', amount: '95,000 LKR', status: 'Pending', partner: 'Global Fibers' },
-    { id: 4, type: 'Purchase', item: 'Synthetic Scraps 2,000kg', date: '2025-10-15', amount: '210,000 LKR', status: 'Received', partner: 'Oceanic Threads' },
-  ];
-
-  const displayData = role === 'admin' ? adminData : role === 'company-seller' ? sellerData : role === 'individual' ? individualData : role === 'company-buyer' ? companyBuyerData : sellerData;
+export default function HistoryTable({ role, data = [], title = "Recent History", onViewAll, isShowingAll, totalItems }) {
+  // Use passed data over hardcoded arrays
+  const displayData = data;
+  const [selectedItem, setSelectedItem] = useState(null);
 
   const getIcon = (type) => {
      switch(type) {
@@ -59,9 +31,11 @@ export default function HistoryTable({ role }) {
         case 'Received':
            return 'bg-nature-500/10 text-nature-400 border-nature-500/20';
         case 'Pending': 
-           return 'bg-orange-500/10 text-orange-400 border-orange-500/20';
+        case 'Pending Payment':
+           return 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20';
         case 'Investigating': 
         case 'Outbid':
+        case 'Failed':
            return 'bg-red-500/10 text-red-400 border-red-500/20';
         case 'Ready for Pickup':
         case 'Pending Delivery':
@@ -73,75 +47,201 @@ export default function HistoryTable({ role }) {
 
   const tableHeaders = role === 'individual' ? (
     <tr>
-      <th className="px-6 py-4 font-bold tracking-wider">Action / Item</th>
-      <th className="px-6 py-4 font-bold tracking-wider">Date</th>
-      <th className="px-6 py-4 font-bold tracking-wider">Factory (Seller)</th>
-      <th className="px-6 py-4 font-bold tracking-wider">Amount Paid/Bid</th>
-      <th className="px-6 py-4 font-bold tracking-wider">Status</th>
+      <th className="px-4 py-4 font-bold tracking-wider w-auto">Action / Item</th>
+      <th className="px-4 py-4 font-bold tracking-wider">Date</th>
+      <th className="px-4 py-4 font-bold tracking-wider">Factory (Seller)</th>
+      <th className="px-4 py-4 font-bold tracking-wider">Amount Paid/Bid</th>
+      <th className="px-4 py-4 font-bold tracking-wider">Status</th>
     </tr>
   ) : role === 'company-buyer' ? (
     <tr>
-      <th className="px-6 py-4 font-bold tracking-wider">Action / Material</th>
-      <th className="px-6 py-4 font-bold tracking-wider">Date</th>
-      <th className="px-6 py-4 font-bold tracking-wider">Source Factory</th>
-      <th className="px-6 py-4 font-bold tracking-wider">Amount (LKR)</th>
-      <th className="px-6 py-4 font-bold tracking-wider">Status</th>
+      <th className="px-4 py-4 font-bold tracking-wider w-auto">Action / Material</th>
+      <th className="px-4 py-4 font-bold tracking-wider">Date</th>
+      <th className="px-4 py-4 font-bold tracking-wider">Source Factory</th>
+      <th className="px-4 py-4 font-bold tracking-wider">Amount (LKR)</th>
+      <th className="px-4 py-4 font-bold tracking-wider">Status</th>
     </tr>
   ) : (
     <tr>
-      <th className="px-6 py-4 font-bold tracking-wider">Action / Item</th>
-      <th className="px-6 py-4 font-bold tracking-wider">Date & Time</th>
-      <th className="px-6 py-4 font-bold tracking-wider">Entity / Partner</th>
-      <th className="px-6 py-4 font-bold tracking-wider">Value</th>
-      <th className="px-6 py-4 font-bold tracking-wider">Status</th>
+      <th className="px-4 py-4 font-bold tracking-wider w-auto">Action / Item</th>
+      <th className="px-4 py-4 font-bold tracking-wider">Date & Time</th>
+      <th className="px-4 py-4 font-bold tracking-wider">Winner / Partner</th>
+      <th className="px-4 py-4 font-bold tracking-wider">Value</th>
+      <th className="px-4 py-4 font-bold tracking-wider">Status</th>
     </tr>
   );
 
   return (
     <div className="w-full">
-      <div className="overflow-x-auto">
-        <table className="w-full text-sm text-left border-collapse">
-          <thead className="text-xs text-industrial-400 uppercase bg-industrial-950/50 border-y border-industrial-800">
-            {tableHeaders}
-          </thead>
-          <tbody>
-            {displayData.map((item, i) => (
-              <motion.tr 
-                 initial={{ opacity: 0, y: 10 }}
-                 animate={{ opacity: 1, y: 0 }}
-                 transition={{ delay: i * 0.05 }}
-                 key={item.id} 
-                 className="border-b border-industrial-800 hover:bg-industrial-800/30 transition-colors group cursor-default"
-              >
-                <td className="px-6 py-4">
-                   <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-industrial-900 border border-industrial-700 shadow-sm flex items-center justify-center shrink-0 group-hover:bg-industrial-800 transition-colors">
-                         {getIcon(item.type)}
-                      </div>
-                      <div>
-                         <p className="font-bold text-white shadow-sm">{item.item}</p>
-                         <p className="text-xs text-industrial-500">{item.type}</p>
-                      </div>
-                   </div>
-                </td>
-                <td className="px-6 py-4 text-industrial-400 text-xs font-medium">{item.date}</td>
-                <td className="px-6 py-4 text-industrial-300 font-medium">{item.partner}</td>
-                <td className="px-6 py-4 font-mono font-bold text-white">{item.amount}</td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <span className={`inline-block px-3 py-1.5 rounded-full text-xs font-bold border ${getStatusColor(item.status)}`}>
-                    {item.status}
-                  </span>
-                </td>
-              </motion.tr>
-            ))}
-          </tbody>
-        </table>
+      <div className="w-full">
+        {displayData.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-16 text-center">
+            <div className="w-16 h-16 rounded-full bg-industrial-900 border border-industrial-800 flex items-center justify-center text-industrial-500 mb-4 shadow-inner">
+               <Archive size={32} />
+            </div>
+            <h3 className="text-lg font-bold text-white mb-1">No history found</h3>
+            <p className="text-sm text-industrial-400 max-w-sm px-4">There are currently no items or transactions to display in this table.</p>
+          </div>
+        ) : (
+          <table className="w-full text-sm text-left border-collapse table-auto">
+            <thead className="text-xs text-industrial-400 uppercase bg-industrial-950/50 border-y border-industrial-800">
+              {tableHeaders}
+            </thead>
+            <tbody>
+              {displayData.map((item, i) => {
+              // Parse backend schema fields -> standard display fields
+              const isDBObj = !!item._id;
+              const uniqueKey = isDBObj ? item._id : item.id;
+              
+              // Depending on if it's an active listing, sold listing, or other
+              let mappedType = isDBObj ? (item.sellingMethod === 'auction' ? 'Auction' : 'Direct') : item.type;
+              let mappedItem = isDBObj ? `${item.wasteType} (${item.weight}kg)` : item.item;
+              let mappedDate = isDBObj ? new Date(item.createdAt).toLocaleDateString() : item.date;
+              
+              let finalPriceValue = item.price || item.startingBid || 0;
+              if (isDBObj && item.sellingMethod === 'auction' && item.bids && item.bids.length > 0) {
+                finalPriceValue = Math.max(...item.bids.map(b => b.amount));
+              }
+              let mappedAmount = isDBObj ? `LKR ${finalPriceValue}` : item.amount;
+              let mappedStatus = isDBObj ? (item.status === 'sold' || item.status === 'paid' ? 'Completed' : (item.status === 'pending_payment' ? 'Pending Payment' : (item.status === 'failed_payment' ? 'Failed' : 'Active'))) : item.status;
+              let mappedPartner = '-';
+              if (isDBObj && (item.status === 'sold' || item.status === 'paid' || item.status === 'pending_payment')) {
+                if (item.bids && item.bids.length > 0) {
+                  // Find highest bid
+                  const highestBid = item.bids.reduce((prev, current) => (prev.amount > current.amount) ? prev : current);
+                  mappedPartner = highestBid.userId?.name ? highestBid.userId.name : 'Buyer Found';
+                } else {
+                  mappedPartner = 'No Bids';
+                }
+              } else if (!isDBObj) {
+                mappedPartner = item.partner;
+              }
+
+              return (
+                <motion.tr 
+                   initial={{ opacity: 0, y: 10 }}
+                   animate={{ opacity: 1, y: 0 }}
+                   transition={{ delay: i * 0.05 }}
+                   key={uniqueKey} 
+                   onClick={() => setSelectedItem({ ...item, mappedItem, mappedType, mappedDate, mappedAmount, mappedStatus, mappedPartner })}
+                   className="border-b border-industrial-800 hover:bg-industrial-800/30 transition-colors group cursor-pointer"
+                >
+                  <td className="px-4 py-4 w-full">
+                     <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-industrial-900 border border-industrial-700 shadow-sm flex items-center justify-center shrink-0 group-hover:bg-industrial-800 transition-colors">
+                           {getIcon(mappedType)}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                           <p className="font-bold text-white shadow-sm leading-tight" title={mappedItem}>{mappedItem}</p>
+                           <p className="text-xs text-industrial-500">{mappedType}</p>
+                        </div>
+                     </div>
+                  </td>
+                  <td className="px-4 py-4 text-industrial-400 text-xs font-medium whitespace-nowrap">{mappedDate}</td>
+                  <td className="px-4 py-4 text-industrial-300 font-medium whitespace-nowrap">{mappedPartner}</td>
+                  <td className="px-4 py-4 font-mono font-bold text-white whitespace-nowrap">{mappedAmount}</td>
+                  <td className="px-4 py-4 whitespace-nowrap">
+                    <span className={`inline-block px-3 py-1.5 rounded-full text-xs font-bold border ${getStatusColor(mappedStatus)}`}>
+                      {mappedStatus}
+                    </span>
+                  </td>
+                </motion.tr>
+              );
+            })}
+            </tbody>
+          </table>
+        )}
       </div>
-      <div className="p-4 border-t border-industrial-800 bg-industrial-950/30 text-center">
-         <button className="text-sm font-bold text-nature-500 hover:text-nature-400 transition-colors py-2 px-6 rounded-xl hover:bg-nature-500/10 active:scale-95">
-            View Complete Ledger &rarr;
-         </button>
-      </div>
+      {(totalItems === undefined || totalItems >= 3) && (
+        <div className="p-4 border-t border-industrial-800 bg-industrial-950/30 text-center">
+           <button onClick={onViewAll} className="text-sm font-bold text-nature-500 hover:text-nature-400 transition-colors py-2 px-6 rounded-xl hover:bg-nature-500/10 active:scale-95">
+              {isShowingAll ? 'Show Less' : `View All ${title} \u2192`}
+           </button>
+        </div>
+      )}
+
+      <AnimatePresence>
+        {selectedItem && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }} 
+              animate={{ opacity: 1 }} 
+              exit={{ opacity: 0 }} 
+              onClick={() => setSelectedItem(null)}
+              className="absolute inset-0 bg-industrial-950/90 backdrop-blur-sm"
+            />
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="relative z-50 bg-industrial-900 rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden border border-industrial-800 flex flex-col p-6"
+            >
+              <button onClick={() => setSelectedItem(null)} className="absolute top-4 right-4 text-industrial-400 hover:text-white transition-colors bg-industrial-800 rounded-full p-2">
+                 <X size={16} />
+              </button>
+              
+              <div className="flex items-center gap-4 mb-6 pr-8">
+                 <div className="w-12 h-12 rounded-full bg-industrial-800 border border-industrial-700 shadow-sm flex items-center justify-center shrink-0">
+                    {getIcon(selectedItem.mappedType)}
+                 </div>
+                 <div>
+                    <h3 className="font-bold text-white text-lg leading-tight">{selectedItem.mappedItem}</h3>
+                    <p className="text-sm text-nature-500 font-medium">{selectedItem.mappedType}</p>
+                 </div>
+              </div>
+
+              <div className="space-y-4 mb-6">
+                 <div className="flex justify-between items-center py-2 border-b border-industrial-800/50">
+                    <span className="text-industrial-400 text-sm">Date</span>
+                    <span className="text-white font-medium">{selectedItem.mappedDate}</span>
+                 </div>
+                 <div className="flex justify-between items-center py-2 border-b border-industrial-800/50">
+                    <span className="text-industrial-400 text-sm">Partner / Location</span>
+                    <span className="text-white font-medium">{selectedItem.mappedPartner}</span>
+                 </div>
+                 <div className="flex justify-between items-center py-2 border-b border-industrial-800/50">
+                    <span className="text-industrial-400 text-sm">Amount</span>
+                    <span className="text-white font-mono font-bold text-lg">{selectedItem.mappedAmount}</span>
+                 </div>
+                 <div className="flex justify-between items-center py-2 border-b border-industrial-800/50">
+                    <span className="text-industrial-400 text-sm">Status</span>
+                    <span className={`inline-block px-3 py-1 rounded-full text-xs font-bold border ${getStatusColor(selectedItem.mappedStatus)}`}>
+                       {selectedItem.mappedStatus}
+                    </span>
+                 </div>
+              </div>
+
+              {(selectedItem.mappedStatus === 'Completed' || selectedItem.mappedStatus === 'Active') ? (
+                <div className="mb-6 space-y-3">
+                   <p className="text-industrial-500 text-xs font-bold uppercase tracking-wider mb-2">Contracts & SLA</p>
+                   {(selectedItem.mappedStatus === 'Completed') && (
+                     <a 
+                        href={`/agreements/${selectedItem._id}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="w-full py-3 border border-blue-500/30 bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 rounded-xl flex items-center justify-center gap-2 font-bold transition-colors shadow-[0_0_15px_rgba(59,130,246,0.1)]"
+                     >
+                       <FileSignature size={18} /> View Trade Agreement (SLA)
+                     </a>
+                   )}
+                   <button 
+                      onClick={() => alert("Downloading Digital Green Certificate (PDF)...")}
+                      className="w-full py-3 border border-nature-500/30 bg-nature-500/10 hover:bg-nature-500/20 text-nature-400 rounded-xl flex items-center justify-center gap-2 font-bold transition-colors shadow-[0_0_15px_rgba(34,197,94,0.1)]"
+                   >
+                     <Shield size={18} /> Download Green Certificate (PDF)
+                   </button>
+                </div>
+              ) : null}
+
+              <div className="mt-2">
+                 <button onClick={() => setSelectedItem(null)} className="w-full bg-industrial-800 hover:bg-industrial-700 text-white font-bold py-3 rounded-xl transition-colors">
+                    Close Details
+                 </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

@@ -8,11 +8,28 @@ import { motion, AnimatePresence } from 'framer-motion';
 export default function AdminDashboard() {
   const [pendingSellers, setPendingSellers] = useState([]);
   const [selectedSeller, setSelectedSeller] = useState(null);
+  const [failedTransactions, setFailedTransactions] = useState([]);
   const { user } = useAuth();
 
   useEffect(() => {
     fetchPendingSellers();
+    fetchFailedTransactions();
   }, [user]);
+
+  const fetchFailedTransactions = async () => {
+    if (!user?.token) return;
+    try {
+      const response = await fetch('http://localhost:5000/api/listings/failed', {
+        headers: { Authorization: `Bearer ${user.token}` }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setFailedTransactions(data);
+      }
+    } catch (error) {
+      console.error('Failed to fetch failed transactions', error);
+    }
+  };
 
   const fetchPendingSellers = async () => {
     try {
@@ -127,6 +144,45 @@ export default function AdminDashboard() {
               )}
            </div>
         </div>
+      </div>
+
+      <div className="bg-industrial-900 rounded-2xl shadow-xl border border-industrial-800 p-6 overflow-hidden">
+         <h3 className="font-bold text-red-500 mb-4 flex items-center gap-2">
+            <AlertTriangle size={18} /> System Alerts: Failed Transactions
+         </h3>
+         {failedTransactions.length === 0 ? (
+            <p className="text-industrial-400 text-sm">No failed transactions reported.</p>
+         ) : (
+            <div className="overflow-x-auto">
+               <table className="w-full text-sm text-left border-collapse table-auto">
+                  <thead className="text-xs text-industrial-400 uppercase bg-industrial-950/50 border-y border-industrial-800">
+                     <tr>
+                        <th className="px-4 py-4 font-bold tracking-wider">Listing ID</th>
+                        <th className="px-4 py-4 font-bold tracking-wider">Seller</th>
+                        <th className="px-4 py-4 font-bold tracking-wider">Highest Bidder (Defaulted)</th>
+                        <th className="px-4 py-4 font-bold tracking-wider">Failed Date</th>
+                     </tr>
+                  </thead>
+                  <tbody>
+                     {failedTransactions.map(t => {
+                        let defaultingBuyer = 'Unknown';
+                        if (t.bids && t.bids.length > 0) {
+                           const highestBid = t.bids.reduce((prev, current) => (prev.amount > current.amount) ? prev : current);
+                           defaultingBuyer = highestBid.userId?.name || 'Unknown User';
+                        }
+                        return (
+                           <tr key={t._id} className="border-b border-industrial-800 bg-red-500/5 hover:bg-red-500/10 transition-colors">
+                              <td className="px-4 py-4 text-white font-mono">{t._id}</td>
+                              <td className="px-4 py-4 text-industrial-300">{t.sellerId?.name}</td>
+                              <td className="px-4 py-4 text-red-400 font-bold">{defaultingBuyer}</td>
+                              <td className="px-4 py-4 text-industrial-400">{new Date(t.updatedAt).toLocaleDateString()}</td>
+                           </tr>
+                        );
+                     })}
+                  </tbody>
+               </table>
+            </div>
+         )}
       </div>
 
       <div className="bg-industrial-900 rounded-2xl shadow-xl border border-industrial-800 p-6 overflow-hidden">
