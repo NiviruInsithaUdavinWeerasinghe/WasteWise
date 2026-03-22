@@ -26,7 +26,11 @@ const userSchema = new mongoose.Schema({
   companyDetails: {
     brNumber: { type: String },
     address: { type: String }
-  }
+  },
+  watchlist: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Listing'
+  }]
 }, { timestamps: true });
 
 module.exports = mongoose.model('User', userSchema);

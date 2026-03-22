@@ -32,4 +32,4 @@ yarn-error.log*
 
 # Ignore machine learning models
 *.h5
-*.keras
+wastewise_model_resnet.keras

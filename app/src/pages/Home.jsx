@@ -1,55 +1,110 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ArrowRight, ShieldCheck, Truck, BarChart3 } from 'lucide-react';
 import AuctionCard from '../components/AuctionCard';
 import BidModal from '../components/BidModal';
-import { motion } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
+import { motion } from 'framer-motion';
+import { getOptimizedUrl } from '../services/cloudinaryService';
 
 export default function Home({ onOpenUpload }) {
   const [selectedBidItem, setSelectedBidItem] = useState(null);
   const { user } = useAuth();
 
-  const auctions = [
-    {
-      id: 1,
-      title: "Sorted Cotton Offcuts - Mixed Colors",
-      weight: "500 kg",
-      currentBid: "45,000 LKR",
-      rawHighestBid: 45000,
-      timeEnds: "2h 15m",
-      type: "Cotton",
-      condition: "Mixed Scraps",
-      location: "Katunayake EPZ",
-      sellerName: "EcoRecycle Corp",
-      image: "https://images.unsplash.com/photo-1604937455095-ef2fe3d46fcd?auto=format&fit=crop&q=80&w=800"
-    },
-    {
-      id: 2,
-      title: "Polyester Rolls - Surplus Grade B",
-      weight: "120 kg",
-      currentBid: "18,500 LKR",
-      rawHighestBid: 18500,
-      timeEnds: "45m",
-      type: "Polyester",
-      condition: "Grade B Surplus",
-      location: "Biyagama EPZ",
-      sellerName: "TexFab Lanka",
-      image: "https://images.unsplash.com/photo-1620799140408-edc6dcb6d633?auto=format&fit=crop&q=80&w=800"
-    },
-    {
-      id: 3,
-      title: "Denim Scraps - High Density",
-      weight: "1,200 kg",
-      currentBid: "112,000 LKR",
-      rawHighestBid: 112000,
-      timeEnds: "5h 00m",
-      type: "Denim",
-      condition: "High Density Offcuts",
-      location: "Koggala EPZ",
-      sellerName: "Global Fibers Ltd",
-      image: "https://images.unsplash.com/photo-1542272604-787c3835535d?auto=format&fit=crop&q=80&w=800"
+  const [auctions, setAuctions] = useState([]);
+
+  const getMaterialImage = (type) => {
+    const t = type.toLowerCase();
+    if (t.includes('plastic')) return "https://images.unsplash.com/photo-1595278069441-2cf29f8005a4?auto=format&fit=crop&q=80&w=800";
+    if (t.includes('paper') || t.includes('cardboard')) return "https://images.unsplash.com/photo-1603504381273-df13b2c159fb?auto=format&fit=crop&q=80&w=800";
+    if (t.includes('metal') || t.includes('steel') || t.includes('iron')) return "https://images.unsplash.com/photo-1518173946687-a4c8892bbd9f?auto=format&fit=crop&q=80&w=800";
+    if (t.includes('glass')) return "https://images.unsplash.com/photo-1514222045585-64d88e632831?auto=format&fit=crop&q=80&w=800";
+    if (t.includes('electronic') || t.includes('e-waste')) return "https://images.unsplash.com/photo-1550005973-54cac8ed9d27?auto=format&fit=crop&q=80&w=800";
+    if (t.includes('fabric') || t.includes('textile') || t.includes('cotton') || t.includes('denim')) return "https://images.unsplash.com/photo-1542272604-787c3835535d?auto=format&fit=crop&q=80&w=800";
+    if (t.includes('polyester')) return "https://images.unsplash.com/photo-1620799140408-edc6dcb6d633?auto=format&fit=crop&q=80&w=800";
+    return "https://images.unsplash.com/photo-1532996122724-e3c354a0b15b?auto=format&fit=crop&q=80&w=800";
+  };
+
+  const fetchFeaturedAuctions = async () => {
+    try {
+      const response = await fetch('http://localhost:5000/api/listings');
+      if (response.ok) {
+        const data = await response.json();
+        // Filter to only auctions, and take the top 3
+        const auctionListings = data.filter(item => item.sellingMethod === 'auction').slice(0, 3);
+        
+        const formattedItems = auctionListings.map(listing => {
+          const maxBid = listing.bids?.length > 0 
+            ? Math.max(...listing.bids.map(b => b.amount))
+            : listing.startingBid || 0;
+            
+          return {
+            id: listing._id,
+            title: `${listing.condition} ${listing.wasteType} - ${listing.location}`,
+            weight: `${listing.weight} kg`,
+            currentBid: `${maxBid.toLocaleString()} LKR`,
+            rawHighestBid: maxBid,
+            timeEnds: listing.sellingMethod === 'auction' ? formatDeadline(listing.endTime) : "Direct Sale",
+            isClosed: listing.sellingMethod === 'auction' ? (new Date(listing.endTime || new Date()) < new Date()) : false,
+            endTime: listing.endTime,
+            type: listing.wasteType,
+            condition: listing.condition,
+            location: listing.location,
+            sellerName: listing.sellerId?.name || 'Verified Source',
+            image: listing.imageUrl ? getOptimizedUrl(listing.imageUrl) : getMaterialImage(listing.wasteType),
+            realBids: listing.bids,
+            startingBid: listing.startingBid,
+            description: listing.description,
+            minBidIncrease: listing.minBidIncrease
+          };
+        });
+        setAuctions(formattedItems);
+      }
+    } catch (error) {
+      console.error("Failed to fetch featured listings:", error);
     }
-  ];
+  };
+
+  const formatDeadline = (endTime) => {
+    if (!endTime) return "Ends Soon";
+    const end = new Date(endTime);
+    const now = new Date();
+    const diffMs = end - now;
+    if (diffMs <= 0) return "Closed";
+    const diffMins = Math.floor(diffMs / 60000);
+    if (diffMins < 60) return `Ends Soon (${diffMins}m left)`;
+    return end.toLocaleString([], { dateStyle: 'short', timeStyle: 'short' });
+  };
+
+  useEffect(() => {
+    fetchFeaturedAuctions();
+  }, []);
+
+  const handlePlaceBid = async (amount) => {
+    try {
+      const response = await fetch(`http://localhost:5000/api/listings/${selectedBidItem.id}/bid`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${user.token}`
+        },
+        body: JSON.stringify({ amount: Number(amount) })
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        await fetchFeaturedAuctions();
+        return true;
+      } else {
+        alert(data.message || 'Failed to place bid');
+        throw new Error(data.message || 'Failed to place bid');
+      }
+    } catch (error) {
+      console.error("Bid error:", error);
+      alert(error.message || 'An error occurred while placing your bid.');
+      throw error;
+    }
+  };
 
   return (
     <div className="min-h-screen bg-industrial-950 font-sans text-white">
@@ -78,12 +133,12 @@ export default function Home({ onOpenUpload }) {
               Connect directly with verified recyclers. Get AI-powered grading, fair pricing, and automated green compliance certificates in one platform.
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-              <button 
-                onClick={onOpenUpload}
+              <a 
+                href="/dashboard"
                 className="w-full sm:w-auto px-8 py-4 bg-nature-600 hover:bg-nature-700 text-white rounded-xl font-semibold transition-all shadow-lg hover:shadow-nature-500/30 flex items-center justify-center gap-2"
               >
-                Start Selling <ArrowRight size={20} />
-              </button>
+                Go to Dashboard <ArrowRight size={20} />
+              </a>
               <a href="/marketplace" className="inline-flex items-center w-full sm:w-auto px-8 py-4 bg-white/10 hover:bg-white/20 text-white rounded-xl font-semibold backdrop-blur-md transition-all border border-white/10 justify-center">
                 Browse Marketplace
               </a>
@@ -191,9 +246,7 @@ export default function Home({ onOpenUpload }) {
           isOpen={!!selectedBidItem} 
           item={selectedBidItem} 
           onClose={() => setSelectedBidItem(null)} 
-          onPlaceBid={(amount) => {
-            console.log(`Bid of ${amount} placed on ${selectedBidItem.title}`);
-          }}
+          onPlaceBid={handlePlaceBid}
         />
       )}
     </div>

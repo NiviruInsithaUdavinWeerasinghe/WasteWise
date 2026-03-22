@@ -1,42 +1,158 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import HistoryTable from '../components/HistoryTable.jsx';
 import AuctionCard from '../components/AuctionCard.jsx';
+import { useAuth } from '../context/AuthContext';
 import BidModal from '../components/BidModal.jsx';
+import PaymentModal from '../components/PaymentModal.jsx';
 import { Package, TrendingUp, DollarSign, CloudRain, Star, Truck, CheckCircle, FileSignature } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { getOptimizedUrl } from '../services/cloudinaryService';
 
 export default function BuyerDashboard() {
-  const [activeTab, setActiveTab] = useState('bids');
+  const { user } = useAuth();
+  const [activeTab, setActiveTab] = useState('active');
   const [selectedItem, setSelectedItem] = useState(null);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [paymentAmount, setPaymentAmount] = useState(0);
+  const [paymentListingId, setPaymentListingId] = useState(null);
+  const [myBids, setMyBids] = useState({ active: [], participated: [], won: [], pending: [] });
 
-  const myBids = [
-    {
-      id: 2,
-      title: "Polyester Rolls - Surplus Grade B",
-      weight: "1,200 kg",
-      currentBid: "185,000 LKR",
-      rawHighestBid: 185000,
-      timeEnds: "45m",
-      type: "Polyester",
-      condition: "Grade B Surplus",
-      location: "Katunayake EPZ",
-      sellerName: "TexFab Lanka",
-      image: "https://images.unsplash.com/photo-1620799140408-edc6dcb6d633?auto=format&fit=crop&q=80&w=800"
-    },
-    {
-      id: 5,
-      title: "Sorted Denim Scraps",
-      weight: "800 kg",
-      currentBid: "95,000 LKR",
-      rawHighestBid: 95000,
-      timeEnds: "2h 30m",
-      type: "Denim",
-      condition: "Clean Sorted",
-      location: "Biyagama EPZ",
-      sellerName: "Global Fibers",
-      image: "https://images.unsplash.com/photo-1542272604-787c3835535d?auto=format&fit=crop&q=80&w=800"
+  const formatDeadline = (endTime) => {
+    if (!endTime) return "Ends Soon";
+    const end = new Date(endTime);
+    const now = new Date();
+    const diffMs = end - now;
+    if (diffMs <= 0) return "Closed";
+    const diffMins = Math.floor(diffMs / 60000);
+    if (diffMins < 60) return `Ends Soon (${diffMins}m left)`;
+    return end.toLocaleString([], { dateStyle: 'short', timeStyle: 'short' });
+  };
+
+  const getMaterialImage = (type) => {
+    const t = type.toLowerCase();
+    if (t.includes('plastic')) return "https://images.unsplash.com/photo-1595278069441-2cf29f8005a4?auto=format&fit=crop&q=80&w=800";
+    if (t.includes('paper') || t.includes('cardboard')) return "https://images.unsplash.com/photo-1603504381273-df13b2c159fb?auto=format&fit=crop&q=80&w=800";
+    if (t.includes('metal') || t.includes('steel') || t.includes('iron')) return "https://images.unsplash.com/photo-1518173946687-a4c8892bbd9f?auto=format&fit=crop&q=80&w=800";
+    if (t.includes('glass')) return "https://images.unsplash.com/photo-1514222045585-64d88e632831?auto=format&fit=crop&q=80&w=800";
+    if (t.includes('electronic') || t.includes('e-waste')) return "https://images.unsplash.com/photo-1550005973-54cac8ed9d27?auto=format&fit=crop&q=80&w=800";
+    if (t.includes('fabric') || t.includes('textile') || t.includes('cotton') || t.includes('denim')) return "https://images.unsplash.com/photo-1542272604-787c3835535d?auto=format&fit=crop&q=80&w=800";
+    if (t.includes('polyester')) return "https://images.unsplash.com/photo-1620799140408-edc6dcb6d633?auto=format&fit=crop&q=80&w=800";
+    return "https://images.unsplash.com/photo-1532996122724-e3c354a0b15b?auto=format&fit=crop&q=80&w=800";
+  };
+
+  const fetchMyBids = async () => {
+    try {
+      const response = await fetch('http://localhost:5000/api/listings/buyer/bids', {
+        headers: {
+          Authorization: `Bearer ${user.token}`
+        }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        
+        const formattedItems = data.map(listing => {
+          const maxBid = listing.bids?.length > 0 
+            ? Math.max(...listing.bids.map(b => b.amount))
+            : listing.startingBid || 0;
+            
+          return {
+            id: listing._id,
+            status: listing.status,
+            title: `${listing.condition} ${listing.wasteType} - ${listing.location}`,
+            weight: `${listing.weight} kg`,
+            currentBid: `${maxBid.toLocaleString()} LKR`,
+            rawHighestBid: maxBid,
+            timeEnds: listing.sellingMethod === 'auction' ? formatDeadline(listing.endTime) : "Direct Sale",
+            isClosed: listing.sellingMethod === 'auction' ? (new Date(listing.endTime || new Date()) < new Date()) : false,
+            endTime: listing.endTime,
+            type: listing.wasteType,
+            condition: listing.condition,
+            location: listing.location,
+            sellerName: listing.sellerId?.name || 'Verified Source',
+            image: listing.imageUrl ? getOptimizedUrl(listing.imageUrl) : getMaterialImage(listing.wasteType),
+            realBids: listing.bids,
+            startingBid: listing.startingBid,
+            description: listing.description,
+            minBidIncrease: listing.minBidIncrease
+          };
+        });
+        
+        const active = formattedItems.filter(item => !item.isClosed && item.status === 'active');
+        const participated = formattedItems.filter(item => item.isClosed || item.status !== 'active');
+        const won = participated.filter(item => {
+           if (['sold', 'pending_payment', 'paid'].includes(item.status)) {
+              if (!item.realBids || item.realBids.length === 0) return false;
+              const highestBid = item.realBids.reduce((prev, current) => (prev.amount > current.amount) ? prev : current);
+              return highestBid.userId._id === user?.id || highestBid.userId === user?.id;
+           }
+           return false;
+        });
+        const pending = won.filter(item => item.status === 'pending_payment');
+
+        setMyBids({ active, participated, won, pending });
+      }
+    } catch (error) {
+      console.error("Failed to fetch bids:", error);
     }
-  ];
+  };
+
+  useEffect(() => {
+    if (user?.id) fetchMyBids();
+  }, [user]);
+
+  const handlePlaceBid = async (amount) => {
+    try {
+      const response = await fetch(`http://localhost:5000/api/listings/${selectedItem.id}/bid`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${user.token}`
+        },
+        body: JSON.stringify({ amount: Number(amount) })
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        await fetchMyBids();
+        return true;
+      } else {
+        alert(data.message || 'Failed to place bid');
+        throw new Error(data.message || 'Failed to place bid');
+      }
+    } catch (error) {
+      console.error("Bid error:", error);
+      alert(error.message || 'An error occurred while placing your bid.');
+      throw error;
+    }
+  };
+
+  const initiatePayment = (listing) => {
+    setPaymentListingId(listing.id);
+    setPaymentAmount(listing.rawHighestBid || Number(listing.currentBid.replace(/[^0-9.]/g, '')));
+    setShowPaymentModal(true);
+  };
+
+  const handlePayment = async (listingId) => {
+    try {
+      const response = await fetch(`http://localhost:5000/api/listings/${listingId}/pay`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${user.token}`
+        }
+      });
+      const data = await response.json();
+      if (response.ok) {
+        fetchMyBids();
+      } else {
+        alert(data.message || 'Payment failed');
+      }
+    } catch (error) {
+      console.error("Payment error:", error);
+      alert('An error occurred during payment.');
+    }
+  };
 
   return (
     <div className="max-w-7xl mx-auto space-y-8 px-4 sm:px-6 lg:px-8 py-8">
@@ -91,19 +207,64 @@ export default function BuyerDashboard() {
             
             {/* Active Bids */}
             <div className="bg-industrial-900 rounded-xl shadow-lg border border-industrial-800 overflow-hidden pt-6">
-               <div className="px-6 mb-6 flex justify-between items-center">
-                 <h2 className="text-xl font-bold text-white">Active Bids & Auctions</h2>
-                 <button className="text-sm font-bold text-nature-500 hover:text-nature-400 transition-colors py-2 px-4 rounded-xl hover:bg-nature-500/10">Browse Supply &rarr;</button>
+               <div className="px-6 mb-4 flex justify-between items-center">
+                 <h2 className="text-xl font-bold text-white">Auctions & Bids</h2>
+                 <a href="/marketplace" className="text-sm font-bold text-nature-500 hover:text-nature-400 transition-colors py-2 px-4 rounded-xl hover:bg-nature-500/10">Browse Supply &rarr;</a>
                </div>
-               <div className="p-6 bg-industrial-950/30 border-t border-industrial-800 grid grid-cols-1 md:grid-cols-2 gap-6">
-                   {myBids.map(b => (
-                     <AuctionCard 
-                       key={b.id} 
-                       {...b} 
-                       onBid={() => setSelectedItem(b)} 
-                     />
-                   ))}
+               
+               <div className="px-6 mb-4 border-b border-industrial-800 flex gap-6 text-sm font-bold overflow-x-auto whitespace-nowrap custom-scrollbar">
+                  <button onClick={() => setActiveTab('active')} className={`pb-3 border-b-2 transition-colors ${activeTab === 'active' ? 'border-nature-500 text-nature-500' : 'border-transparent text-industrial-500 hover:text-industrial-300'}`}>Active ({myBids.active?.length || 0})</button>
+                  <button onClick={() => setActiveTab('pending')} className={`pb-3 border-b-2 transition-colors ${activeTab === 'pending' ? 'border-yellow-500 text-yellow-500' : 'border-transparent text-industrial-500 hover:text-industrial-300'}`}>Pending Payment ({myBids.pending?.length || 0})</button>
+                  <button onClick={() => setActiveTab('participated')} className={`pb-3 border-b-2 transition-colors ${activeTab === 'participated' ? 'border-nature-500 text-nature-500' : 'border-transparent text-industrial-500 hover:text-industrial-300'}`}>Participated ({myBids.participated?.length || 0})</button>
+                  <button onClick={() => setActiveTab('won')} className={`pb-3 border-b-2 transition-colors ${activeTab === 'won' ? 'border-nature-500 text-nature-500' : 'border-transparent text-industrial-500 hover:text-industrial-300'}`}>Won ({myBids.won?.length || 0})</button>
                </div>
+               
+               {myBids[activeTab]?.length > 0 ? (
+                 <div className={`p-6 bg-industrial-950/30 ${activeTab === 'active' ? 'grid grid-cols-1 md:grid-cols-2 gap-6' : 'flex flex-col gap-4'}`}>
+                     {myBids[activeTab].map(b => (
+                       activeTab === 'active' ? (
+                         <AuctionCard 
+                           key={b.id} 
+                           {...b} 
+                           onBid={() => setSelectedItem(b)} 
+                         />
+                       ) : (
+                         <div 
+                            key={b.id} 
+                            className="bg-industrial-900 border border-industrial-800 rounded-xl p-4 flex flex-col md:flex-row items-center justify-between gap-4 hover:border-nature-500/50 transition-colors cursor-pointer shadow-sm group" 
+                            onClick={() => setSelectedItem(b)}
+                         >
+                            <div className="flex flex-1 items-center gap-4 w-full md:w-auto overflow-hidden">
+                               <img src={b.image} alt={b.title} className="w-16 h-16 rounded-xl object-cover border border-industrial-800 shrink-0 group-hover:border-nature-500/30 transition-colors" />
+                               <div className="min-w-0">
+                                  <h4 className="font-bold text-white text-md truncate">{b.title}</h4>
+                                  <p className="text-sm text-industrial-400 truncate mt-0.5">{b.weight} &bull; {b.type}</p>
+                                  <p className="text-xs text-industrial-500 truncate mt-0.5">Source: {b.sellerName}</p>
+                               </div>
+                            </div>
+                             <div className="flex md:flex-col items-center md:items-end justify-between w-full md:w-auto mt-2 md:mt-0 pt-3 md:pt-0 border-t md:border-t-0 border-industrial-800 shrink-0">
+                                <div className="font-bold font-mono text-white text-lg">{b.currentBid}</div>
+                                <span className={`text-xs font-bold px-3 py-1 rounded-full mt-1.5 border ${['sold', 'paid'].includes(b.status) ? 'bg-nature-500/10 text-nature-400 border-nature-500/20' : b.status === 'pending_payment' ? 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20' : 'bg-red-500/10 text-red-400 border-red-500/20'}`}>
+                                   {['sold', 'paid'].includes(b.status) ? 'Completed' : b.status === 'pending_payment' ? 'Pending Payment' : 'Closed'}
+                                </span>
+                                {b.status === 'pending_payment' && (
+                                   <button 
+                                      onClick={(e) => { e.stopPropagation(); initiatePayment(b); }} 
+                                      className="mt-3 w-full bg-nature-600 hover:bg-nature-500 text-white text-xs font-bold py-2 rounded-lg transition-colors shadow-lg"
+                                   >
+                                      Pay Now
+                                   </button>
+                                )}
+                             </div>
+                         </div>
+                       )
+                     ))}
+                 </div>
+               ) : (
+                 <div className="p-12 text-center bg-industrial-950/30">
+                    <p className="text-industrial-400">No items in this category yet.</p>
+                 </div>
+               )}
             </div>
 
             {/* Procurement Ledger */}
@@ -178,10 +339,19 @@ export default function BuyerDashboard() {
           isOpen={true} 
           onClose={() => setSelectedItem(null)} 
           item={selectedItem} 
-          onPlaceBid={(amount) => {
-            console.log(`Bid of ${amount} placed on ${selectedItem.title}`);
-            // Logic handled by backend later
-          }}
+          onPlaceBid={handlePlaceBid}
+        />
+      )}
+
+      {showPaymentModal && (
+        <PaymentModal 
+           isOpen={showPaymentModal}
+           onClose={() => setShowPaymentModal(false)}
+           amount={paymentAmount}
+           onSuccess={() => {
+              setShowPaymentModal(false);
+              handlePayment(paymentListingId);
+           }}
         />
       )}
     </div>

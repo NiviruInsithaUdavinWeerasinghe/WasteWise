@@ -11,6 +11,8 @@ export default function SellerDashboard({ onOpenUpload }) {
     revenue: 0,
     activeListings: 0
   });
+  const [rawListings, setRawListings] = useState([]);
+  const [showAll, setShowAll] = useState(false);
 
   useEffect(() => {
     const fetchSellerStats = async () => {
@@ -25,24 +27,35 @@ export default function SellerDashboard({ onOpenUpload }) {
 
         if (response.ok) {
           const listings = await response.json();
+          setRawListings(listings);
           
           let weight = 0;
           let rev = 0;
           let active = 0;
+          let awaiting = 0;
 
           listings.forEach(listing => {
-            if (listing.status === 'sold') {
+            let finalPrice = listing.price || listing.startingBid || 0;
+            if (listing.sellingMethod === 'auction' && listing.bids && listing.bids.length > 0) {
+              finalPrice = Math.max(...listing.bids.map(b => b.amount));
+            }
+
+            if (listing.status === 'sold' || listing.status === 'paid') {
               weight += listing.weight || 0;
-              rev += listing.price || listing.startingBid || 0;
+              rev += finalPrice;
             } else if (listing.status === 'active') {
               active += 1;
+            } else if (listing.status === 'pending_payment') {
+              const amount = finalPrice * 0.97;
+              awaiting += amount;
             }
           });
 
           setStats({
             totalWeight: weight,
             revenue: rev,
-            activeListings: active
+            activeListings: active,
+            awaitingPayment: awaiting
           });
         }
       } catch (error) {
@@ -84,7 +97,7 @@ export default function SellerDashboard({ onOpenUpload }) {
          </button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <div className="bg-industrial-900 p-6 rounded-xl shadow-lg border border-industrial-800">
            <div className="flex items-center gap-3 mb-2 text-nature-500">
              <Leaf size={20} /> <span className="font-bold text-sm">Waste Diverted</span>
@@ -99,6 +112,13 @@ export default function SellerDashboard({ onOpenUpload }) {
            <div className="text-3xl font-bold text-white">Rs {(stats.revenue).toLocaleString()}</div>
         </div>
         <div className="bg-industrial-900 p-6 rounded-xl shadow-lg border border-industrial-800">
+           <div className="flex items-center gap-3 mb-2 text-yellow-500">
+             <DollarSign size={20} /> <span className="font-bold text-sm">Awaiting Payment</span>
+           </div>
+           <div className="text-3xl font-bold text-white">Rs {(stats.awaitingPayment || 0).toLocaleString()}</div>
+           <div className="text-xs text-yellow-500/80 mt-1">Expected net payout (-3%)</div>
+        </div>
+        <div className="bg-industrial-900 p-6 rounded-xl shadow-lg border border-industrial-800">
            <div className="flex items-center gap-3 mb-2 text-orange-500">
              <Upload size={20} /> <span className="font-bold text-sm">Active Listings</span>
            </div>
@@ -106,9 +126,22 @@ export default function SellerDashboard({ onOpenUpload }) {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <HistoryTable role="seller" />
-        <DashboardChart title="Monthly Waste Trends" />
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+        <div className="lg:col-span-3 bg-industrial-900 rounded-xl border border-industrial-800 shadow-lg flex flex-col max-h-[500px]">
+           <div className="overflow-y-auto overflow-x-hidden custom-scrollbar flex-1 relative">
+             <HistoryTable 
+               role="seller" 
+               data={showAll ? rawListings : rawListings.slice(0, 2)} 
+               title="Your Uploads" 
+               onViewAll={() => setShowAll(!showAll)}
+               isShowingAll={showAll}
+               totalItems={rawListings.length}
+             />
+           </div>
+        </div>
+        <div className="lg:col-span-2 flex flex-col">
+           <DashboardChart title="Monthly Waste Trends" />
+        </div>
       </div>
     </div>
   );

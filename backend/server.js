@@ -4,6 +4,8 @@ const dotenv = require('dotenv');
 const cors = require('cors');
 const authRoutes = require('./routes/authRoutes');
 const listingRoutes = require('./routes/listingRoutes');
+const notificationRoutes = require('./routes/notificationRoutes');
+const startCronJobs = require('./cronJobs');
 
 dotenv.config();
 
@@ -15,6 +17,7 @@ app.use(cors());
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/listings', listingRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 const PORT = process.env.PORT || 5000;
 const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/wisewaste';
@@ -25,6 +28,7 @@ app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
 mongoose.connect(MONGO_URI)
   .then(async () => {
     console.log('Connected to MongoDB');
+    startCronJobs();
 
     // Seed admin account
     const User = require('./models/User');

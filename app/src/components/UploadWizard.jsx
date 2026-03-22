@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
-import { Upload, CheckCircle, Loader, FileText, TrendingUp, AlertCircle, RefreshCw, Send } from 'lucide-react';
+import { Upload, CheckCircle, Loader, FileText, TrendingUp, AlertCircle, RefreshCw, Send, Star } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
+import { uploadFileToCloudinary } from '../services/cloudinaryService';
 
 export default function UploadWizard() {
   const [status, setStatus] = useState('idle'); // idle, scanning, complete, details, submitting, success
   const [image, setImage] = useState(null);
+  const [imageUrl, setImageUrl] = useState(null);
   const [aiResult, setAiResult] = useState(null);
   const { user } = useAuth();
 
@@ -15,7 +17,11 @@ export default function UploadWizard() {
     location: '',
     sellingMethod: 'auction',
     price: '',
-    startingBid: ''
+    startingBid: '',
+    minBidIncrease: '',
+    description: '',
+    endTime: '',
+    pickupResponsibility: 'Buyer Arranges Pickup'
   });
 
   const handleFileChange = async (e) => {
@@ -28,21 +34,25 @@ export default function UploadWizard() {
       data.append('file', file);
 
       try {
-        const response = await fetch('http://127.0.0.1:5000/predict', {
-            method: 'POST',
-            body: data,
-        });
+        const [response, cloudResult] = await Promise.all([
+          fetch('http://127.0.0.1:5000/predict', {
+              method: 'POST',
+              body: data,
+          }),
+          uploadFileToCloudinary(file)
+        ]);
 
         const resData = await response.json();
         
         if (resData.error) throw new Error(resData.error);
 
+        setImageUrl(cloudResult.secure_url);
         setAiResult(resData); 
         setStatus('complete');
 
       } catch (error) {
-        console.error("Error connecting to AI:", error);
-        alert("Error: Could not connect to the AI Brain. Is the ML service running?");
+        console.error("Error processing file:", error);
+        alert("Error: Could not scan or upload file. Ensure ML service is running and internet connection is stable.");
         setStatus('idle');
       }
     }
@@ -57,14 +67,24 @@ export default function UploadWizard() {
     setStatus('submitting');
 
     try {
+      const materials = aiResult.breakdown
+        .filter(item => item.confidence > 0.05)
+        .map(item => `${item.material.replace('_', ' ')} ${(item.confidence * 100).toFixed(1)}%`)
+        .join(', ');
+
       const payload = {
-        wasteType: aiResult.top_prediction.material.replace('_', ' '),
+        wasteType: `${aiResult.top_prediction.material.replace('_', ' ')} (${materials})`,
         weight: Number(formData.weight),
-        condition: formData.condition,
+        condition: aiResult.quality_grade || 'Grade B',
         location: formData.location,
         sellingMethod: formData.sellingMethod,
         price: formData.sellingMethod === 'direct' ? Number(formData.price) : undefined,
-        startingBid: formData.sellingMethod === 'auction' ? Number(formData.startingBid) : undefined
+        startingBid: formData.sellingMethod === 'auction' ? Number(formData.startingBid) : undefined,
+        minBidIncrease: formData.sellingMethod === 'auction' ? Number(formData.minBidIncrease || 0) : undefined,
+        description: formData.description || undefined,
+        endTime: formData.sellingMethod === 'auction' && formData.endTime ? new Date(formData.endTime).toISOString() : undefined,
+        pickupResponsibility: formData.pickupResponsibility,
+        imageUrl: imageUrl
       };
 
       const response = await fetch('http://localhost:5000/api/listings', {
@@ -81,6 +101,9 @@ export default function UploadWizard() {
       }
 
       setStatus('success');
+      setTimeout(() => {
+        window.location.reload();
+      }, 1500);
     } catch (error) {
       console.error(error);
       alert('Failed to submit listing. Please try again.');
@@ -90,6 +113,7 @@ export default function UploadWizard() {
 
   const resetUpload = () => {
     setImage(null);
+    setImageUrl(null);
     setAiResult(null);
     setFormData({
       weight: '',
@@ -97,7 +121,11 @@ export default function UploadWizard() {
       location: '',
       sellingMethod: 'auction',
       price: '',
-      startingBid: ''
+      startingBid: '',
+      minBidIncrease: '',
+      description: '',
+      endTime: '',
+      pickupResponsibility: 'Buyer Arranges Pickup'
     });
     setStatus('idle');
   }
@@ -233,7 +261,7 @@ export default function UploadWizard() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4 mb-8">
+              <div className="grid grid-cols-3 gap-4 mb-8">
                 <div className="bg-nature-500/10 p-4 rounded-xl border border-nature-500/20">
                   <div className="text-nature-500 text-sm font-medium mb-1">Confidence Score</div>
                   <div className="text-2xl font-bold text-nature-400">
@@ -249,6 +277,18 @@ export default function UploadWizard() {
                       {getEstimatedPrice(aiResult.top_prediction.material)} 
                       <span className="text-sm text-industrial-500 font-normal ml-1">LKR/kg</span>
                    </div>
+                </div>
+                <div className="bg-industrial-950 p-4 rounded-xl border border-nature-500/40 shadow-inner relative overflow-hidden">
+                   <div className="absolute top-0 right-0 -mt-2 -mr-2 opacity-5 text-nature-500">
+                     <Star size={64} />
+                   </div>
+                   <div className="text-industrial-400 text-sm font-medium mb-1 flex items-center gap-1">
+                      <Star size={14} className="text-nature-500" /> AI Quality Grade
+                   </div>
+                   <div className="text-2xl font-bold text-white relative z-10">
+                      {aiResult.quality_grade || 'Grade B'}
+                   </div>
+                   <div className="text-xs text-nature-400 mt-1">Gemini 1.5 Vision</div>
                 </div>
               </div>
 
@@ -270,50 +310,73 @@ export default function UploadWizard() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               onSubmit={submitListing}
-              className="text-left space-y-4"
+              className="text-left space-y-3"
             >
               <h3 className="text-xl font-bold text-white mb-4">Complete Listing Details</h3>
               
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-industrial-400 mb-1">Weight (kg)</label>
-                  <input type="number" name="weight" required value={formData.weight} onChange={handleInputChange} className="w-full bg-industrial-950 border border-industrial-800 rounded-lg py-2.5 px-3 focus:ring-2 focus:ring-nature-500 outline-none text-white placeholder-industrial-600 shadow-inner" min="1" />
+                  <input type="number" name="weight" required value={formData.weight} onChange={handleInputChange} className="w-full bg-industrial-950 border border-industrial-800 rounded-lg py-1.5 px-3 focus:ring-2 focus:ring-nature-500 outline-none text-white placeholder-industrial-600 shadow-inner" min="1" />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-industrial-400 mb-1">Condition</label>
-                  <select name="condition" value={formData.condition} onChange={handleInputChange} className="w-full bg-industrial-950 border border-industrial-800 rounded-lg py-2.5 px-3 focus:ring-2 focus:ring-nature-500 outline-none text-white shadow-inner">
-                    <option value="Excellent">Excellent</option>
-                    <option value="Good">Good</option>
-                    <option value="Fair">Fair</option>
-                    <option value="Mixed">Mixed</option>
-                  </select>
+                  <label className="block text-sm font-medium text-nature-500 mb-1 flex items-center gap-1 cursor-help" title="Condition is automatically determined by Gemini V1.5">
+                     <Star size={14}/> AI Verified Condition
+                  </label>
+                  <input type="text" readOnly value={aiResult?.quality_grade || 'Grade B'} className="w-full bg-industrial-950/50 border border-nature-500/30 rounded-lg py-1.5 px-3 outline-none text-nature-400 font-bold shadow-inner cursor-not-allowed" />
                 </div>
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-industrial-400 mb-1">Location</label>
-                <input type="text" name="location" required value={formData.location} onChange={handleInputChange} placeholder="e.g. Colombo, Sri Lanka" className="w-full bg-industrial-950 border border-industrial-800 rounded-lg py-2.5 px-3 focus:ring-2 focus:ring-nature-500 outline-none text-white placeholder-industrial-600 shadow-inner" />
+                <input type="text" name="location" required value={formData.location} onChange={handleInputChange} placeholder="e.g. Colombo, Sri Lanka" className="w-full bg-industrial-950 border border-industrial-800 rounded-lg py-1.5 px-3 focus:ring-2 focus:ring-nature-500 outline-none text-white placeholder-industrial-600 shadow-inner" />
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-industrial-400 mb-1">Selling Method</label>
-                <select name="sellingMethod" value={formData.sellingMethod} onChange={handleInputChange} className="w-full bg-industrial-950 border border-industrial-800 rounded-lg py-2.5 px-3 focus:ring-2 focus:ring-nature-500 outline-none text-white shadow-inner">
+                <select name="sellingMethod" value={formData.sellingMethod} onChange={handleInputChange} className="w-full bg-industrial-950 border border-industrial-800 rounded-lg py-1.5 px-3 focus:ring-2 focus:ring-nature-500 outline-none text-white shadow-inner">
                   <option value="auction">Auction (Bidding)</option>
                   <option value="direct">Direct Sale (Fixed Price)</option>
                 </select>
               </div>
 
               {formData.sellingMethod === 'auction' ? (
-                <div>
-                  <label className="block text-sm font-medium text-industrial-400 mb-1">Starting Bid (LKR)</label>
-                  <input type="number" name="startingBid" required value={formData.startingBid} onChange={handleInputChange} className="w-full bg-industrial-950 border border-industrial-800 rounded-lg py-2.5 px-3 focus:ring-2 focus:ring-nature-500 outline-none text-white placeholder-industrial-600 shadow-inner" min="1" />
-                </div>
+                <>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-industrial-400 mb-1">Starting Bid (LKR)</label>
+                      <input type="number" name="startingBid" required value={formData.startingBid} onChange={handleInputChange} className="w-full bg-industrial-950 border border-industrial-800 rounded-lg py-1.5 px-3 focus:ring-2 focus:ring-nature-500 outline-none text-white placeholder-industrial-600 shadow-inner" min="1" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-industrial-400 mb-1">Min Bid Increase</label>
+                      <input type="number" name="minBidIncrease" required value={formData.minBidIncrease} onChange={handleInputChange} className="w-full bg-industrial-950 border border-industrial-800 rounded-lg py-1.5 px-3 focus:ring-2 focus:ring-nature-500 outline-none text-white placeholder-industrial-600 shadow-inner" min="0" />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-industrial-400 mb-1">Auction Deadline</label>
+                    <input type="datetime-local" name="endTime" required value={formData.endTime} onChange={handleInputChange} className="w-full bg-industrial-950 border border-industrial-800 rounded-lg py-1.5 px-3 focus:ring-2 focus:ring-nature-500 outline-none text-white placeholder-industrial-600 shadow-inner [color-scheme:dark]" />
+                  </div>
+                </>
               ) : (
                 <div>
                   <label className="block text-sm font-medium text-industrial-400 mb-1">Fixed Price (LKR)</label>
-                  <input type="number" name="price" required value={formData.price} onChange={handleInputChange} className="w-full bg-industrial-950 border border-industrial-800 rounded-lg py-2.5 px-3 focus:ring-2 focus:ring-nature-500 outline-none text-white placeholder-industrial-600 shadow-inner" min="1" />
+                  <input type="number" name="price" required value={formData.price} onChange={handleInputChange} className="w-full bg-industrial-950 border border-industrial-800 rounded-lg py-1.5 px-3 focus:ring-2 focus:ring-nature-500 outline-none text-white placeholder-industrial-600 shadow-inner" min="1" />
                 </div>
               )}
+
+              <div>
+                <label className="block text-sm font-medium text-industrial-400 mb-1">Pickup Responsibility</label>
+                <select name="pickupResponsibility" value={formData.pickupResponsibility} onChange={handleInputChange} className="w-full bg-industrial-950 border border-industrial-800 rounded-lg py-1.5 px-3 focus:ring-2 focus:ring-nature-500 outline-none text-white shadow-inner">
+                  <option value="Buyer Arranges Pickup">Buyer Arranges Pickup</option>
+                  <option value="Seller Delivers">Seller Delivers</option>
+                  <option value="Platform Logistics">Platform Logistics</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-industrial-400 mb-1">Description (Optional)</label>
+                <textarea name="description" value={formData.description} onChange={handleInputChange} placeholder="Additional details about the waste..." className="w-full bg-industrial-950 border border-industrial-800 rounded-lg py-1.5 px-3 focus:ring-2 focus:ring-nature-500 outline-none text-white placeholder-industrial-600 shadow-inner h-16 resize-none" />
+              </div>
 
               <div className="flex gap-3 pt-4 border-t border-industrial-800">
                  <button type="submit" className="flex-1 bg-nature-600 text-white font-bold py-3 rounded-lg hover:bg-nature-500 transition-colors shadow-lg flex justify-center items-center gap-2">
@@ -351,9 +414,10 @@ export default function UploadWizard() {
                <h3 className="text-2xl font-bold text-white mb-2">Listing Published!</h3>
                <p className="text-industrial-400 mb-8">Your waste material is now live on the marketplace.</p>
                
-               <button onClick={resetUpload} className="bg-nature-600 text-white font-bold px-8 py-3 rounded-lg hover:bg-nature-500 transition-colors shadow-lg">
-                  Submit Another Item
-               </button>
+               <div className="flex items-center justify-center gap-2 text-nature-400 text-sm">
+                  <Loader size={16} className="animate-spin" />
+                  <span>Redirecting to dashboard...</span>
+               </div>
              </motion.div>
           )}
         </AnimatePresence>

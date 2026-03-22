@@ -1,7 +1,7 @@
 import React from 'react';
 import { Clock, TrendingUp, Package } from 'lucide-react';
 
-export default function AuctionCard({ title, weight, currentBid, minBid, timeEnds, type, image, isSeller, onBid }) {
+export default function AuctionCard({ title, weight, currentBid, minBid, timeEnds, type, image, isSeller, isClosed, onBid }) {
   return (
     <div className="bg-industrial-900 rounded-xl shadow-lg border border-industrial-800 overflow-hidden hover:shadow-xl hover:border-industrial-700 transition-all group">
       <div className="h-48 overflow-hidden relative">
@@ -24,23 +24,26 @@ export default function AuctionCard({ title, weight, currentBid, minBid, timeEnd
               <p className="text-lg font-bold text-nature-400">{currentBid}</p>
            </div>
            <div className="text-right">
-              <p className="text-xs text-industrial-400 mb-1">Ends In</p>
-              <div className="flex items-center justify-end gap-1 text-orange-400 font-medium text-sm bg-orange-500/10 px-2 py-0.5 rounded-md inline-flex border border-orange-500/20">
+              <p className="text-xs text-industrial-400 mb-1">Status</p>
+              <div className={`flex items-center justify-end gap-1 font-medium text-sm px-2 py-0.5 rounded-md inline-flex border ${isClosed ? 'text-red-400 bg-red-500/10 border-red-500/20' : 'text-orange-400 bg-orange-500/10 border-orange-500/20'}`}>
                  <Clock size={14} /> {timeEnds}
               </div>
            </div>
         </div>
 
         <button 
-           onClick={onBid}
+           onClick={isClosed && !isSeller ? null : onBid}
+           disabled={isClosed && !isSeller}
            className={`w-full py-2.5 rounded-lg font-bold text-sm transition-all flex items-center justify-center gap-2 ${
-             isSeller 
+             (isClosed && !isSeller)
+             ? 'bg-industrial-800 text-industrial-600 border border-industrial-800 cursor-not-allowed'
+             : isSeller 
              ? 'bg-industrial-800 text-industrial-300 hover:bg-industrial-700 hover:text-white border border-industrial-700' 
              : 'bg-nature-600 text-white hover:bg-nature-500 shadow-lg shadow-nature-900/50'
            }`}
         >
-           {isSeller ? 'View Listing' : 'Place Bid'} 
-           {!isSeller && <TrendingUp size={16} />}
+           {isSeller ? 'View Listing' : isClosed ? 'Auction Closed' : 'Place Bid'} 
+           {!isSeller && !isClosed && <TrendingUp size={16} />}
         </button>
       </div>
     </div>

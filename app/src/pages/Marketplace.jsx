@@ -3,6 +3,7 @@ import AuctionCard from '../components/AuctionCard';
 import BidModal from '../components/BidModal';
 import { Search, Filter, Loader } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { getOptimizedUrl } from '../services/cloudinaryService';
 
 export default function Marketplace() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -22,6 +23,17 @@ export default function Marketplace() {
     if (t.includes('fabric') || t.includes('textile') || t.includes('cotton') || t.includes('denim')) return "https://images.unsplash.com/photo-1542272604-787c3835535d?auto=format&fit=crop&q=80&w=800";
     if (t.includes('polyester')) return "https://images.unsplash.com/photo-1620799140408-edc6dcb6d633?auto=format&fit=crop&q=80&w=800";
     return "https://images.unsplash.com/photo-1532996122724-e3c354a0b15b?auto=format&fit=crop&q=80&w=800"; // fallback waste image
+  };
+
+  const formatDeadline = (endTime) => {
+    if (!endTime) return "Ends Soon";
+    const end = new Date(endTime);
+    const now = new Date();
+    const diffMs = end - now;
+    if (diffMs <= 0) return "Closed";
+    const diffMins = Math.floor(diffMs / 60000);
+    if (diffMins < 60) return `Ends Soon (${diffMins}m left)`;
+    return end.toLocaleString([], { dateStyle: 'short', timeStyle: 'short' });
   };
 
   const fetchListings = async () => {
@@ -44,14 +56,19 @@ export default function Marketplace() {
             rawHighestBid: maxBid,
             bidsCount: listing.bids?.length || 0,
             realBids: listing.bids || [],
-            timeEnds: listing.sellingMethod === 'auction' ? "Ends Soon" : "Direct Sale",
+            timeEnds: listing.sellingMethod === 'auction' ? formatDeadline(listing.endTime) : "Direct Sale",
+            isClosed: listing.sellingMethod === 'auction' ? (new Date(listing.endTime || new Date()) < new Date()) : false,
             type: listing.wasteType,
             condition: listing.condition,
             location: listing.location,
             sellerName: listing.sellerId?.name || 'Verified Source',
-            image: getMaterialImage(listing.wasteType),
+            image: listing.imageUrl ? getOptimizedUrl(listing.imageUrl) : getMaterialImage(listing.wasteType),
             sellingMethod: listing.sellingMethod,
-            sellerId: listing.sellerId?._id || listing.sellerId
+            sellerId: listing.sellerId?._id || listing.sellerId,
+            startingBid: listing.startingBid,
+            description: listing.description,
+            minBidIncrease: listing.minBidIncrease,
+            endTime: listing.endTime
           };
         });
         setItems(formattedItems);
@@ -81,15 +98,17 @@ export default function Marketplace() {
       const data = await response.json();
 
       if (response.ok) {
-        // Refresh the listings to show the new bid
+        // Explicitly refresh in background, do NOT kill the modal here. The BidModal timeout handles its UI gracefully.
         await fetchListings();
-        setSelectedBidItem(null);
+        return true;
       } else {
         alert(data.message || 'Failed to place bid');
+        throw new Error(data.message || 'Failed to place bid');
       }
     } catch (error) {
       console.error("Bid error:", error);
-      alert('An error occurred while placing your bid.');
+      alert(error.message || 'An error occurred while placing your bid.');
+      throw error;
     }
   };
 
