@@ -2,8 +2,11 @@ import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, CreditCard, Lock, Loader2, CheckCircle, Wifi } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
 export default function PaymentModal({ isOpen, onClose, amount, onSuccess }) {
+  const { user } = useAuth();
+  const storageKey = `wisewaste_saved_card_${user?.id || 'guest'}`;
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   
@@ -16,7 +19,7 @@ export default function PaymentModal({ isOpen, onClose, amount, onSuccess }) {
 
   React.useEffect(() => {
     try {
-      const saved = localStorage.getItem('wisewaste_saved_card');
+      const saved = localStorage.getItem(storageKey);
       if (saved) {
         const parsed = JSON.parse(saved);
         setCardNumber(parsed.cardNumber || '');
@@ -28,7 +31,7 @@ export default function PaymentModal({ isOpen, onClose, amount, onSuccess }) {
     } catch (e) {
       console.error('Could not load saved card', e);
     }
-  }, []);
+  }, [storageKey]);
 
   if (!isOpen) return null;
 
@@ -40,11 +43,11 @@ export default function PaymentModal({ isOpen, onClose, amount, onSuccess }) {
     await new Promise(resolve => setTimeout(resolve, 2000));
     
     if (rememberCard) {
-      localStorage.setItem('wisewaste_saved_card', JSON.stringify({
+      localStorage.setItem(storageKey, JSON.stringify({
         cardNumber, expiry, cvc, name
       }));
     } else {
-      localStorage.removeItem('wisewaste_saved_card');
+      localStorage.removeItem(storageKey);
     }
 
     setIsProcessing(false);

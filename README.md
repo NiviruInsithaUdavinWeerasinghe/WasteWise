@@ -5,7 +5,7 @@ WasteWise is an industrial waste marketplace platform. It connects businesses to
 ## Tech Stack
 * **Frontend:** React (Vite)
 * **Backend:** Node.js, Express, MongoDB
-* **ML Service:** Python, Flask, OpenAI API
+* **ML Service:** Python, Flask, Google Gemini AI (through Google AI Studio)
 
 ---
 
@@ -42,11 +42,11 @@ NODE_ENV=development
 ### ML Service Environment Variables
 Create a `.env` file inside the `ml_service` directory:
 ```text
-OPENAI_API_KEY=your_openai_api_key
+GEMINI_API_KEY=your_gemini_api_key
 ```
 
 **How to get these required ML service values:**
-* **OPENAI_API_KEY**: Create an account at platform.openai.com. Go to your dashboard, navigate to the "API keys" section, and click "Create new secret key". Copy the generated key. Note that OpenAI requires an active billing account for API requests to work.
+* **GEMINI_API_KEY**: Create an account at [Google AI Studio](https://aistudio.google.com/). Go to the "Get API key" section, create a new API key, and copy it. This is used for the Gemini Flash Latest model.
 
 ## 3. Terminal Setup Commands
 
@@ -96,3 +96,6 @@ pip install -r requirements.txt
 # Start the Flask service
 python app.py
 ```
+
+> [!NOTE]
+> The ML service runs on port `5001` to avoid conflicts with the backend server which runs on port `5000`.

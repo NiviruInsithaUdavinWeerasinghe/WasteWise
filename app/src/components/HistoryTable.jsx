@@ -36,7 +36,12 @@ export default function HistoryTable({ role, data = [], title = "Recent History"
         case 'Investigating': 
         case 'Outbid':
         case 'Failed':
+        case 'No Bids':
            return 'bg-red-500/10 text-red-400 border-red-500/20';
+        case 'Ready for Pickup':
+        case 'Pending Delivery':
+        case 'Expired':
+           return 'bg-industrial-800 text-industrial-400 border-industrial-700';
         case 'Ready for Pickup':
         case 'Pending Delivery':
            return 'bg-blue-500/10 text-blue-400 border-blue-500/20';
@@ -103,7 +108,13 @@ export default function HistoryTable({ role, data = [], title = "Recent History"
                 finalPriceValue = Math.max(...item.bids.map(b => b.amount));
               }
               let mappedAmount = isDBObj ? `LKR ${finalPriceValue}` : item.amount;
-              let mappedStatus = isDBObj ? (item.status === 'sold' || item.status === 'paid' ? 'Completed' : (item.status === 'pending_payment' ? 'Pending Payment' : (item.status === 'failed_payment' ? 'Failed' : 'Active'))) : item.status;
+              let mappedStatus = isDBObj ? (
+                item.status === 'sold' || item.status === 'paid' ? 'Completed' : 
+                item.status === 'pending_payment' ? 'Pending Payment' : 
+                item.status === 'failed_payment' ? 'Failed' : 
+                item.status === 'no_bids' ? 'No Bids' :
+                item.status === 'expired' ? 'Expired' : 'Active'
+              ) : item.status;
               let mappedPartner = '-';
               if (isDBObj && (item.status === 'sold' || item.status === 'paid' || item.status === 'pending_payment')) {
                 if (item.bids && item.bids.length > 0) {

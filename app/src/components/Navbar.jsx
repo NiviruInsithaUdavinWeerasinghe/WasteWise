@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Leaf, Recycle, Menu, LogOut, User, Bell, Check } from 'lucide-react';
+import { Leaf, Recycle, Menu, LogOut, User, Bell, Check, BellRing, Info, AlertCircle, ShoppingCart, Award, FileCheck, ChevronDown, ChevronUp } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, useLocation } from 'react-router-dom';
 import logoUrl from '../assets/logo(v2.2).png';
@@ -10,6 +11,7 @@ export default function Navbar({ toggleUpload, showUpload }) {
   const location = useLocation();
   const [notifications, setNotifications] = useState([]);
   const [showDropdown, setShowDropdown] = useState(false);
+  const [expandedId, setExpandedId] = useState(null);
 
   useEffect(() => {
     if (user?.token) fetchNotifications();
@@ -34,7 +36,31 @@ export default function Navbar({ toggleUpload, showUpload }) {
     } catch(e) {}
   };
 
+  const handleMarkAllAsRead = async () => {
+    try {
+      await fetch(`http://localhost:5000/api/notifications/read-all`, {
+        method: 'PATCH',
+        headers: { Authorization: `Bearer ${user.token}` }
+      });
+      setNotifications(notifications.map(n => ({ ...n, isRead: true })));
+    } catch(e) {}
+  };
+
+  const getNotificationIcon = (type) => {
+    switch (type) {
+      case 'auction_won': 
+      case 'auction_sold': return <Award size={16} className="text-nature-500" />;
+      case 'outbid': 
+      case 'ending_soon': return <AlertCircle size={16} className="text-orange-500" />;
+      case 'certificate': 
+      case 'agreement_created': return <FileCheck size={16} className="text-blue-500" />;
+      case 'admin_alert': return <BellRing size={16} className="text-red-500" />;
+      default: return <Info size={16} className="text-industrial-400" />;
+    }
+  };
+
   const unreadCount = notifications.filter(n => !n.isRead).length;
+  const displayCount = unreadCount > 99 ? '99+' : unreadCount;
 
   const handleLogout = () => {
     logout();
@@ -71,35 +97,118 @@ export default function Navbar({ toggleUpload, showUpload }) {
              {user ? (
                <>
                  <div className="relative">
-                   <button onClick={() => setShowDropdown(!showDropdown)} className="relative p-2 text-industrial-400 hover:text-white transition-colors" title="Notifications">
-                     <Bell size={20} />
-                     {unreadCount > 0 && <span className="absolute top-1 right-1 flex items-center justify-center w-4 h-4 text-[10px] font-bold text-white bg-red-500 rounded-full">{unreadCount}</span>}
-                   </button>
-                   {showDropdown && (
-                     <div className="absolute right-0 mt-3 w-80 bg-industrial-900 border border-industrial-800 rounded-xl shadow-2xl z-50 overflow-hidden">
-                       <div className="p-4 border-b border-industrial-800 bg-industrial-950/50 flex justify-between items-center">
-                         <h3 className="font-bold text-white">Notifications</h3>
-                       </div>
-                       <div className="max-h-80 overflow-y-auto">
-                         {notifications.length === 0 ? (
-                           <p className="p-6 text-center text-industrial-500 text-sm">No new notifications.</p>
-                         ) : notifications.map(n => (
-                           <div key={n._id} className={`p-4 border-b border-industrial-800 flex gap-3 ${!n.isRead ? 'bg-industrial-800/30 border-l-2 border-l-nature-500' : ''}`}>
-                             <div className="flex-1">
-                               <p className="text-sm text-industrial-200">{n.message}</p>
-                               <span className="text-[10px] text-industrial-500 mt-2 block">{new Date(n.createdAt).toLocaleString()}</span>
-                             </div>
-                             {!n.isRead && (
-                               <button onClick={() => handleMarkAsRead(n._id)} className="text-nature-500 hover:text-nature-400 p-1 self-start" title="Mark as read">
-                                 <Check size={16} />
+                    <button 
+                      onClick={() => setShowDropdown(!showDropdown)} 
+                      className={`relative p-2 rounded-full transition-all ${showDropdown ? 'bg-industrial-800 text-white' : 'text-industrial-400 hover:text-white hover:bg-industrial-800/50'}`}
+                      title="Notifications"
+                    >
+                      <Bell size={20} />
+                      {unreadCount > 0 && (
+                        <span className="absolute -top-1 -right-1 flex">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                          <span className="relative inline-flex rounded-full min-w-[20px] h-5 px-1.5 bg-red-500 text-[10px] font-bold text-white items-center justify-center border-2 border-industrial-950 shadow-lg">
+                            {displayCount}
+                          </span>
+                        </span>
+                      )}
+                    </button>
+                    
+                    <AnimatePresence>
+                      {showDropdown && (
+                        <motion.div 
+                          initial={{ opacity: 0, y: 10, scale: 0.98 }}
+                          animate={{ opacity: 1, y: 0, scale: 1 }}
+                          exit={{ opacity: 0, y: 10, scale: 0.98 }}
+                          transition={{ duration: 0.15, ease: "easeOut" }}
+                          className="absolute right-0 mt-3 w-80 bg-industrial-900 border border-industrial-800 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] z-50 overflow-hidden"
+                        >
+                          <div className="p-4 border-b border-industrial-800/50 bg-industrial-950/30 flex justify-between items-center">
+                            <div>
+                               <h3 className="font-bold text-white text-sm">Notifications</h3>
+                               <p className="text-[10px] text-industrial-500 font-medium uppercase tracking-wider">{unreadCount} unread messages</p>
+                            </div>
+                            {unreadCount > 0 && (
+                              <button 
+                                onClick={(e) => { e.stopPropagation(); handleMarkAllAsRead(); }}
+                                className="text-xs font-bold text-nature-500 hover:text-nature-400 transition-colors py-1.5 px-3 rounded-xl hover:bg-nature-500/10 border border-transparent hover:border-nature-500/20"
+                              >
+                                Mark all as read
+                              </button>
+                            )}
+                          </div>
+                          
+                          <div className="max-h-96 overflow-y-auto custom-scrollbar bg-industrial-900">
+                            {notifications.length === 0 ? (
+                              <div className="p-10 text-center">
+                                <Bell size={32} className="mx-auto text-industrial-700 mb-2 opacity-20" />
+                                <p className="text-industrial-500 text-sm font-medium">No activity yet</p>
+                              </div>
+                            ) : (
+                               <div className="divide-y divide-industrial-800/50">
+                                 {notifications.slice(0, 10).map(n => {
+                                   const isExpanded = expandedId === n._id;
+                                   return (
+                                     <div 
+                                       key={n._id} 
+                                       onClick={() => setExpandedId(isExpanded ? null : n._id)}
+                                       className={`group relative p-4 flex gap-4 cursor-pointer overflow-hidden transition-colors ${!n.isRead ? 'bg-industrial-800/50 hover:bg-industrial-800/70' : 'bg-transparent hover:bg-industrial-800/20'}`}
+                                     >
+                                       {!n.isRead && (
+                                         <div className="absolute left-0 top-0 bottom-0 w-1 bg-nature-500 shadow-[0_0_10px_rgba(34,197,94,0.3)] z-10" />
+                                       )}
+                                       
+                                       <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 mt-0.5 ${!n.isRead ? 'bg-industrial-800 border border-industrial-700' : 'bg-industrial-900/50'}`}>
+                                         {getNotificationIcon(n.type)}
+                                       </div>
+                                       
+                                       <div className="flex-1 min-w-0">
+                                         <div className="flex justify-between items-start mb-0.5">
+                                           <div className={`text-sm leading-snug transition-all duration-200 overflow-hidden ${isExpanded ? 'text-white h-auto' : (n.isRead ? 'text-industrial-400 line-clamp-2 h-10' : 'text-white font-medium line-clamp-2 h-10')}`}>
+                                             {n.message}
+                                           </div>
+                                         </div>
+                                         <div className="flex items-center justify-between mt-2">
+                                           <span className="text-[10px] text-industrial-500 font-medium tracking-tight">
+                                             {new Date(n.createdAt).toLocaleDateString()} at {new Date(n.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                           </span>
+                                           
+                                           <div className="flex items-center gap-2">
+                                             {!n.isRead && (
+                                               <button 
+                                                 onClick={(e) => { e.stopPropagation(); handleMarkAsRead(n._id); }} 
+                                                 className="opacity-0 group-hover:opacity-100 flex items-center justify-center w-7 h-7 bg-nature-500 text-white rounded-lg transition-all hover:bg-nature-400"
+                                                 title="Mark as read"
+                                               >
+                                                 <Check size={14} strokeWidth={3} />
+                                               </button>
+                                             )}
+                                             <div className={`p-1 rounded-md transition-colors ${isExpanded ? 'bg-industrial-800' : 'opacity-0 group-hover:opacity-100'}`}>
+                                               {isExpanded ? <ChevronUp size={14} className="text-industrial-300" /> : <ChevronDown size={14} className="text-industrial-500" />}
+                                             </div>
+                                           </div>
+                                         </div>
+                                       </div>
+                                     </div>
+                                   );
+                                 })}
+                               </div>
+                            )}
+                          </div>
+                          
+                          {notifications.length > 0 && (
+                            <div className="p-3 bg-industrial-950/80 border-t border-industrial-800/50 text-center">
+                               <button 
+                                  onClick={() => { setShowDropdown(false); navigate('/notifications'); }}
+                                  className="text-[10px] font-bold text-industrial-400 hover:text-white transition-all uppercase tracking-[0.2em] flex items-center justify-center mx-auto gap-2 group"
+                               >
+                                 See all activity <span className="group-hover:translate-x-1 transition-transform inline-block">&rarr;</span>
                                </button>
-                             )}
-                           </div>
-                         ))}
-                       </div>
-                     </div>
-                   )}
-                 </div>
+                            </div>
+                          )}
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
                  {user.role === 'company-seller' && (
                     <button 
                         onClick={user.isApproved ? toggleUpload : null}

@@ -12,6 +12,7 @@ venv/
 # env files
 .env
 backend/.env
+ml_service/.env
 
 # testing
 /coverage

@@ -7,10 +7,22 @@ from PIL import Image
 import io
 import json
 import google.generativeai as genai
+import os
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 # Configure Gemini API
-genai.configure(api_key="AIzaSyDj-l64WZ9jTafkseyvUkd4cdJKpLJNOK4")
-vision_model = genai.GenerativeModel('gemini-2.5-flash')
+api_key = os.getenv("GEMINI_API_KEY")
+if not api_key:
+    raise ValueError("GEMINI_API_KEY not found in environment variables")
+
+# Log masked key for verification (safe for logs)
+print(f"Using API Key: {api_key[:8]}...{api_key[-4:]}")
+
+genai.configure(api_key=api_key)
+vision_model = genai.GenerativeModel('gemini-flash-latest')
 
 app = Flask(__name__)
 CORS(app)
@@ -65,8 +77,13 @@ def predict():
 - 'Grade B': Noticeable edge fraying, slight marks, or minor discoloration, but moderately usable.
 - 'Grade C': Heavily contaminated, dirty, stained, or shredded.
 Return ONLY a valid JSON object exactly like this: {"quality_grade": "Grade A"}."""
-            # The python generativeai SDK accepts PIL Image directly
-            response = vision_model.generate_content([prompt, image])
+            
+            # Use request_options to set a reasonable timeout (e.g., 10 seconds)
+            # to prevent the frontend from hanging forever if the API is slow.
+            from google.api_core import retry
+            response = vision_model.generate_content(
+                [prompt, image],
+            )
             content_text = response.text.replace("```json", "").replace("```", "").strip()
             print("Gemini Raw Response:", content_text)
             grade_data = json.loads(content_text)
@@ -89,4 +106,4 @@ Return ONLY a valid JSON object exactly like this: {"quality_grade": "Grade A"}.
         return jsonify({"error": str(e)}), 500
 
 if __name__ == "__main__":
-    app.run(port=5000, debug=True)
+    app.run(port=5001, debug=True)

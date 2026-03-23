@@ -17,11 +17,10 @@ const startCronJobs = () => {
       }).populate('bids.userId', 'name email').populate('sellerId', 'name email');
 
       for (const listing of expiredAuctions) {
-        listing.status = 'pending_payment';
-        listing.paymentDeadline = new Date(Date.now() + 48 * 60 * 60 * 1000); // 48 hours
-        await listing.save();
-
         if (listing.bids && listing.bids.length > 0) {
+          listing.status = 'pending_payment';
+          listing.paymentDeadline = new Date(Date.now() + 48 * 60 * 60 * 1000); // 48 hours
+          
           const winningBid = listing.bids.reduce((prev, current) => (prev.amount > current.amount) ? prev : current);
           const winner = winningBid.userId;
 
@@ -54,6 +53,7 @@ const startCronJobs = () => {
              );
           }
         } else {
+          listing.status = 'no_bids';
           // Notify seller it ended without bids
           await sendNotification(
             listing.sellerId._id,
@@ -62,6 +62,7 @@ const startCronJobs = () => {
             listing._id
           );
         }
+        await listing.save();
       }
     } catch (error) {
        console.error('Error closing expired auctions:', error);

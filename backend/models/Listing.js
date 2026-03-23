@@ -37,9 +37,9 @@ const listingSchema = new mongoose.Schema({
   startingBid: {
     type: Number
   },
-  status: {
+    status: {
     type: String,
-    enum: ['active', 'sold', 'pending_payment', 'failed_payment'],
+    enum: ['active', 'sold', 'pending_payment', 'failed_payment', 'expired', 'no_bids'],
     default: 'active',
     required: true
   },
