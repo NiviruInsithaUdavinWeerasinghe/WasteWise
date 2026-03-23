@@ -1,13 +1,21 @@
 const nodemailer = require('nodemailer');
 const Notification = require('../models/Notification');
 const User = require('../models/User');
+const { getTemplate } = require('../utils/emailTemplates');
+const path = require('path');
 
-// Configure Nodemailer transporter
+// Path to the system logo
+const LOGO_PATH = path.join(__dirname, '../../app/src/assets/logo(v2.2).png');
+
+/**
+ * Configure Nodemailer transporter
+ * Using Gmail as requested by the user.
+ */
 const transporter = nodemailer.createTransport({
-  service: 'gmail', // or any other service like smtp.mailtrap.io
+  service: 'gmail',
   auth: {
-    user: process.env.EMAIL_USER || 'no-reply@wastewise.com',
-    pass: process.env.EMAIL_PASS || 'dummy-password'
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS
   }
 });
 
@@ -26,31 +34,40 @@ const sendNotification = async (userId, type, message, relatedEntityId = null) =
 
     // 2. Fetch User to get Email Address
     const user = await User.findById(userId);
-    if (!user || (!process.env.EMAIL_USER && process.env.NODE_ENV !== 'development')) {
-      console.log(`Notification saved for ${userId}, but email skipped (No valid user/SMTP config).`);
+    if (!user) {
+      console.log(`Notification saved for ${userId}, but user not found for email.`);
       return;
     }
 
-    // 3. Send Email
-    const mailOptions = {
-      from: '"WasteWise Notifications" <no-reply@wastewise.com>',
-      to: user.email,
-      subject: `WasteWise Alert: ${type.toUpperCase()}`,
-      html: `<div style="font-family: Arial, sans-serif; p-4;">
-               <h2 style="color: #22c55e;">WasteWise Notification</h2>
-               <p style="font-size: 16px;">Hello ${user.name},</p>
-               <p style="font-size: 16px;">${message}</p>
-               <br/>
-               <p style="font-size: 12px; color: #666;">This is an automated message from the Factory Waste Management System.</p>
-             </div>`
-    };
+    // 3. Send Email (Non-Blocking / Fire-and-Forget)
+    // Only attempt if credentials are provided
+    if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
+      const emailHtml = getTemplate(user.name || 'User', message, type);
+      
+      const mailOptions = {
+        from: `"WasteWise Alerts" <${process.env.EMAIL_USER}>`,
+        to: user.email,
+        subject: `WasteWise Alert: ${type.toUpperCase().replace('_', ' ')}`,
+        html: emailHtml,
+        attachments: [
+          {
+            filename: 'logo.png',
+            path: LOGO_PATH,
+            cid: 'logo'
+          }
+        ]
+      };
 
-    // If EMAIL_USER is configured, attempt sending. Otherwise, mock it.
-    if (process.env.EMAIL_USER) {
-      await transporter.sendMail(mailOptions);
-      console.log(`Email dispatched successfully to ${user.email}`);
+      // We do NOT await this. It runs in the background.
+      transporter.sendMail(mailOptions)
+        .then(() => console.log(`[EMAIL DISPATCHED] ${user.email} (Type: ${type})`))
+        .catch(err => console.error(`[EMAIL ERROR] Failed for ${user.email}:`, err));
+      
+      // Return early while the mail is being sent in the background
+      return true;
     } else {
-      console.log(`[MOCK EMAIL] To: ${user.email} | Subject: ${mailOptions.subject}`);
+      console.log(`[MOCK EMAIL] To: ${user.email} | Message: ${message.substring(0, 30)}...`);
+      return true;
     }
 
   } catch (error) {
@@ -84,8 +101,24 @@ const markAsRead = async (req, res) => {
   }
 };
 
+const markAllAsRead = async (req, res) => {
+  try {
+    console.log(`[READ-ALL] Request for user: ${req.user.id}`);
+    const result = await Notification.updateMany(
+      { userId: req.user.id, isRead: false },
+      { $set: { isRead: true } }
+    );
+    console.log(`[READ-ALL] Modified ${result.modifiedCount} documents`);
+    res.json({ message: 'All notifications marked as read' });
+  } catch (err) {
+    console.error('[READ-ALL] Error:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
 module.exports = {
   sendNotification,
   getUserNotifications,
-  markAsRead
+  markAsRead,
+  markAllAsRead
 };

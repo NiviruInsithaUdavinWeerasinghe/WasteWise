@@ -11,6 +11,7 @@ import AdminDashboard from './pages/AdminDashboard';
 import SellerDashboard from './pages/SellerDashboard';
 import BuyerDashboard from './pages/BuyerDashboard';
 import IndividualDashboard from './pages/IndividualDashboard';
+import Notifications from './pages/Notifications';
 import UploadWizard from './components/UploadWizard';
 import { AnimatePresence, motion } from 'framer-motion';
 
@@ -57,6 +58,7 @@ function AppContent() {
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
             <Route path="/marketplace" element={<Marketplace />} />
+            <Route path="/notifications" element={<Notifications />} />
             
             <Route path="/dashboard" element={
               <PrivateRoute>

@@ -35,7 +35,7 @@ export default function UploadWizard() {
 
       try {
         const [response, cloudResult] = await Promise.all([
-          fetch('http://127.0.0.1:5000/predict', {
+          fetch('http://127.0.0.1:5001/predict', {
               method: 'POST',
               body: data,
           }),
