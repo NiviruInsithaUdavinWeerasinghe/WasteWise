@@ -19,10 +19,13 @@ export default function Navbar({ toggleUpload, showUpload }) {
 
   const fetchNotifications = async () => {
     try {
-      const res = await fetch('http://localhost:5000/api/notifications', {
+      const res = await fetch('http://localhost:5000/api/notifications?limit=10', {
         headers: { Authorization: `Bearer ${user.token}` }
       });
-      if (res.ok) setNotifications(await res.json());
+      if (res.ok) {
+        const data = await res.json();
+        setNotifications(data.notifications || []);
+      }
     } catch(e) { console.error('Failed to load notifications', e); }
   };
 
