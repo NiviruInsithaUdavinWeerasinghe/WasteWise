@@ -78,10 +78,23 @@ const sendNotification = async (userId, type, message, relatedEntityId = null) =
 // Handlers for Frontend Polling
 const getUserNotifications = async (req, res) => {
   try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 20;
+    const skip = (page - 1) * limit;
+
     const notifications = await Notification.find({ userId: req.user.id })
       .sort({ createdAt: -1 })
-      .limit(20);
-    res.json(notifications);
+      .skip(skip)
+      .limit(limit);
+
+    const total = await Notification.countDocuments({ userId: req.user.id });
+
+    res.json({
+      notifications,
+      total,
+      page,
+      pages: Math.ceil(total / limit)
+    });
   } catch (err) {
     res.status(500).json({ message: 'Server error' });
   }
@@ -116,9 +129,23 @@ const markAllAsRead = async (req, res) => {
   }
 };
 
+const deleteNotification = async (req, res) => {
+  try {
+    const notification = await Notification.findById(req.params.id);
+    if (!notification || notification.userId.toString() !== req.user.id) {
+      return res.status(404).json({ message: 'Notification not found' });
+    }
+    await Notification.findByIdAndDelete(req.params.id);
+    res.json({ message: 'Notification deleted' });
+  } catch (err) {
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
 module.exports = {
   sendNotification,
   getUserNotifications,
   markAsRead,
-  markAllAsRead
+  markAllAsRead,
+  deleteNotification
 };

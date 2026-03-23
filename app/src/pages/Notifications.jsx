@@ -9,19 +9,25 @@ export default function Notifications() {
   const navigate = useNavigate();
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalNotifications, setTotalNotifications] = useState(0);
 
   useEffect(() => {
-    if (user?.token) fetchNotifications();
-  }, [user]);
+    if (user?.token) fetchNotifications(currentPage);
+  }, [user, currentPage]);
 
-  const fetchNotifications = async () => {
+  const fetchNotifications = async (page = 1) => {
+    setLoading(true);
     try {
-      const res = await fetch('http://localhost:5000/api/notifications', {
+      const res = await fetch(`http://localhost:5000/api/notifications?page=${page}&limit=20`, {
         headers: { Authorization: `Bearer ${user.token}` }
       });
       if (res.ok) {
         const data = await res.json();
-        setNotifications(data);
+        setNotifications(data.notifications || []);
+        setTotalPages(data.pages || 1);
+        setTotalNotifications(data.total || 0);
       }
     } catch(e) { 
       console.error('Failed to load notifications', e); 
@@ -50,6 +56,19 @@ export default function Notifications() {
     } catch(e) {}
   };
 
+  const handleDeleteNotification = async (id) => {
+    try {
+      const res = await fetch(`http://localhost:5000/api/notifications/${id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${user.token}` }
+      });
+      if (res.ok) {
+        // Instead of just filtering local state, re-fetch to pull in next available notification
+        fetchNotifications(currentPage);
+      }
+    } catch(e) {}
+  };
+
   const getNotificationIcon = (type) => {
     switch (type) {
       case 'auction_won': 
@@ -75,7 +94,14 @@ export default function Notifications() {
                 <ArrowLeft size={20} />
              </button>
              <div>
-                <h1 className="text-3xl font-bold text-white tracking-tight">Notification Center</h1>
+                <div className="flex items-center gap-3">
+                   <h1 className="text-3xl font-bold text-white tracking-tight">Notification Center</h1>
+                    {totalNotifications > 0 && (
+                       <span className="px-2.5 py-0.5 rounded-full bg-industrial-800 text-industrial-400 text-sm font-bold border border-industrial-700 shadow-inner">
+                          {totalNotifications}
+                       </span>
+                    )}
+                </div>
                 <p className="text-industrial-500 mt-1 font-medium">Manage all your alerts and activity logs</p>
              </div>
           </div>
@@ -111,10 +137,10 @@ export default function Notifications() {
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: i * 0.05 }}
                       key={n._id} 
-                      className={`group relative p-6 flex gap-6 transition-all border-l-4 ${!n.isRead ? 'bg-industrial-800/10 border-l-nature-500 hover:bg-industrial-800/20' : 'border-l-transparent hover:bg-industrial-800/10'}`}
+                      className={`group relative p-6 flex gap-6 transition-all ${!n.isRead ? 'bg-industrial-800/10 hover:bg-industrial-800/20' : 'hover:bg-industrial-800/10'}`}
                    >
                       {!n.isRead && (
-                        <div className="absolute left-0 top-0 bottom-0 w-1 bg-nature-500 shadow-[0_0_10px_rgba(34,197,94,0.3)]" />
+                        <div className={`absolute left-0 top-0 bottom-0 w-1.5 bg-nature-500 shadow-[0_0_15px_rgba(34,197,94,0.4)] z-10 ${i === 0 ? 'rounded-tl-2xl' : ''}`} />
                       )}
 
                       <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 ${!n.isRead ? 'bg-industrial-800 border border-industrial-700 shadow-lg shadow-black/20' : 'bg-industrial-950/50'}`}>
@@ -138,6 +164,7 @@ export default function Notifications() {
                           </button>
                         )}
                         <button 
+                           onClick={() => handleDeleteNotification(n._id)}
                            className="p-3 rounded-xl bg-industrial-800 text-industrial-400 hover:bg-red-500 hover:text-white transition-all shadow-sm active:scale-90"
                            title="Delete notification"
                         >
@@ -146,8 +173,38 @@ export default function Notifications() {
                       </div>
                    </motion.div>
                 ))}
-             </div>
-          )}
+              </div>
+           )}
+
+           {/* Pagination Controls */}
+           {totalPages > 1 && (
+              <div className="p-6 bg-industrial-950/30 border-t border-industrial-800/50 flex items-center justify-between">
+                 <button 
+                    onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                    disabled={currentPage === 1 || loading}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-xl border transition-all font-bold ${currentPage === 1 ? 'border-industrial-800 text-industrial-600 cursor-not-allowed' : 'border-industrial-700 bg-industrial-800 text-industrial-300 hover:text-white hover:bg-industrial-700 active:scale-95'}`}
+                 >
+                    <ArrowLeft size={18} /> Previous
+                 </button>
+                 
+                 <div className="flex items-center gap-2">
+                    <span className="text-industrial-500 text-sm font-bold uppercase tracking-widest">Page</span>
+                    <span className="w-10 h-10 rounded-lg bg-nature-600/20 border border-nature-600/30 flex items-center justify-center text-nature-500 font-bold">
+                       {currentPage}
+                    </span>
+                    <span className="text-industrial-500 text-sm font-bold uppercase tracking-widest px-2">of</span>
+                    <span className="text-industrial-300 text-sm font-bold">{totalPages}</span>
+                 </div>
+
+                 <button 
+                    onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                    disabled={currentPage === totalPages || loading}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-xl border transition-all font-bold ${currentPage === totalPages ? 'border-industrial-800 text-industrial-600 cursor-not-allowed' : 'border-industrial-700 bg-industrial-800 text-industrial-300 hover:text-white hover:bg-industrial-700 active:scale-95'}`}
+                 >
+                    Next <div className="rotate-180"><ArrowLeft size={18} /></div>
+                 </button>
+              </div>
+           )}
         </div>
       </div>
     </div>
