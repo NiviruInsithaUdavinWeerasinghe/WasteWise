@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import { ArrowUpRight, ArrowDownLeft, Shield, CheckCircle, RefreshCw, Box, AlertTriangle, ShoppingBag, Clock, XCircle, FileSignature, X, Archive } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useAuth } from '../context/AuthContext';
 
 export default function HistoryTable({ role, data = [], title = "Recent History", onViewAll, isShowingAll, totalItems }) {
+  const { user } = useAuth();
   // Use passed data over hardcoded arrays
   const displayData = data;
   const [selectedItem, setSelectedItem] = useState(null);
@@ -109,7 +111,8 @@ export default function HistoryTable({ role, data = [], title = "Recent History"
               }
               let mappedAmount = isDBObj ? `LKR ${finalPriceValue}` : item.amount;
               let mappedStatus = isDBObj ? (
-                item.status === 'sold' || item.status === 'paid' ? 'Completed' : 
+                item.status === 'completed' ? 'Completed' : 
+                item.status === 'sold' || item.status === 'paid' ? 'Paid' : 
                 item.status === 'pending_payment' ? 'Pending Payment' : 
                 item.status === 'failed_payment' ? 'Failed' : 
                 item.status === 'no_bids' ? 'No Bids' :
@@ -236,7 +239,34 @@ export default function HistoryTable({ role, data = [], title = "Recent History"
                      </a>
                    )}
                    <button 
-                      onClick={() => alert("Downloading Digital Green Certificate (PDF)...")}
+                      onClick={async () => {
+                        try {
+                           const response = await fetch(`http://localhost:5000/api/listings/${selectedItem._id}/certificate`, {
+                              method: 'GET',
+                              headers: {
+                                 'Authorization': `Bearer ${user.token}`
+                              }
+                           });
+                           
+                           if (response.ok) {
+                              const blob = await response.blob();
+                              const url = window.URL.createObjectURL(blob);
+                              const link = document.createElement('a');
+                              link.href = url;
+                              link.setAttribute('download', `GreenCertificate_${selectedItem._id}.pdf`);
+                              document.body.appendChild(link);
+                              link.click();
+                              link.remove();
+                              window.URL.revokeObjectURL(url);
+                           } else {
+                              const data = await response.json();
+                              alert(data.message || 'Failed to download certificate');
+                           }
+                        } catch (error) {
+                           console.error("Download error:", error);
+                           alert("An error occurred during download.");
+                        }
+                      }}
                       className="w-full py-3 border border-nature-500/30 bg-nature-500/10 hover:bg-nature-500/20 text-nature-400 rounded-xl flex items-center justify-center gap-2 font-bold transition-colors shadow-[0_0_15px_rgba(34,197,94,0.1)]"
                    >
                      <Shield size={18} /> Download Green Certificate (PDF)

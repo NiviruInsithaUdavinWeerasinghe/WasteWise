@@ -1,7 +1,10 @@
 const Listing = require('../models/Listing');
 const User = require('../models/User');
+const Agreement = require('../models/Agreement');
 const { sendNotification } = require('./notificationController');
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY || 'sk_test_dummy');
+const crypto = require('crypto');
+const PDFDocument = require('pdfkit');
 
 // @desc    Create a listing
 // @route   POST /api/listings
@@ -326,6 +329,219 @@ const getFailedTransactions = async (req, res) => {
   }
 };
 
+const path = require('path');
+const LOGO_PATH = path.join(__dirname, '../../app/src/assets/logo(v2.2).png');
+
+/**
+ * Shared helper to draw a premium Green Certificate
+ */
+const drawCertificate = (doc, data) => {
+  const { sellerName, buyerName, wasteType, weight, co2Saved, date, hash, listingId } = data;
+
+  // --- Background & Border ---
+  doc.rect(0, 0, 612, 792).fill('#ffffff'); // White background
+  
+  // Subtle light green header bar
+  doc.rect(0, 0, 612, 120).fill('#f0fdf4'); // Very light green
+  
+  // Formal Border
+  doc.rect(40, 40, 532, 712).lineWidth(1.5).stroke('#d1d5db');
+  doc.rect(45, 45, 522, 702).lineWidth(0.5).stroke('#16a34a'); // Thin green inner border
+
+  // --- Header ---
+  try {
+    doc.image(LOGO_PATH, 60, 60, { width: 80 });
+  } catch (err) {
+    console.warn("Logo not found, skipping image.");
+  }
+
+  doc.fillColor('#16a34a');
+  doc.fontSize(16).font('Helvetica-Bold').text('WasteWise Platform', 160, 75);
+  doc.fillColor('#6b7280');
+  doc.fontSize(9).font('Helvetica').text('Official Sustainability Verification Service', 160, 95);
+
+  // --- Main Title ---
+  doc.moveDown(5);
+  doc.fillColor('#111827');
+  doc.fontSize(24).font('Helvetica-Bold').text('GREEN CERTIFICATE', { align: 'center' });
+  doc.moveDown(0.2);
+  doc.fontSize(10).font('Helvetica').fillColor('#6b7280').text('Issued for Industrial Waste Diversion Compliance', { align: 'center' });
+  
+  doc.moveDown(1.5);
+  doc.rect(150, doc.y, 312, 1).fill('#e5e7eb');
+  doc.moveDown(2);
+
+  // --- Certification Statement ---
+  doc.fillColor('#374151');
+  doc.fontSize(11).font('Helvetica').text('This document serves as formal verification that the following member organization:', { align: 'center' });
+  doc.moveDown(1);
+  doc.fillColor('#16a34a');
+  doc.fontSize(20).font('Helvetica-Bold').text(sellerName.toUpperCase(), { align: 'center' });
+  doc.moveDown(1);
+  doc.fillColor('#374151');
+  doc.fontSize(11).font('Helvetica').text('has successfully completed a sustainable waste management transaction via the WasteWise circular supply chain network.', { align: 'center', width: 400, indent: 60 });
+
+  // --- Technical Details / Table ---
+  doc.moveDown(3);
+  const startX = 100;
+  const labelWidth = 180;
+  const valueX = startX + labelWidth + 20;
+  let currentY = doc.y;
+
+  const drawDetail = (label, value) => {
+    doc.fillColor('#6b7280').fontSize(9).font('Helvetica-Bold').text(label.toUpperCase(), startX, currentY);
+    doc.fillColor('#111827').fontSize(11).font('Helvetica').text(value, valueX, currentY);
+    currentY += 25;
+    // Subtle separator line
+    doc.rect(startX, currentY - 8, 412, 0.5).fill('#f3f4f6');
+  };
+
+  drawDetail('Material Diverted', `${weight} KG of ${wasteType}`);
+  drawDetail('Verified Recipient', buyerName);
+  drawDetail('Certification Date', date);
+  drawDetail('Audit Reference ID', listingId);
+
+  // --- Impact Summary ---
+  currentY += 20;
+  doc.rect(startX, currentY, 412, 60).fill('#f9fafb');
+  doc.fillColor('#16a34a').fontSize(10).font('Helvetica-Bold').text('ENVIRONMENTAL IMPACT SUMMARY', startX + 20, currentY + 15);
+  doc.fillColor('#111827').fontSize(14).font('Helvetica-Bold').text(`${co2Saved.toFixed(2)} KG CO2e AVOIDED`, startX + 20, currentY + 32);
+
+  // --- Verification Footer ---
+  doc.fillColor('#9ca3af');
+  doc.fontSize(8).font('Helvetica-Bold').text('BLOCKCHAIN VERIFICATION HASH', 60, 680);
+  doc.fillColor('#16a34a');
+  doc.fontSize(7).font('Courier').text(hash, 60, 692, { width: 492 });
+
+  // Footer Disclaimer
+  doc.fillColor('#9ca3af');
+  doc.fontSize(7).font('Helvetica').text('This certificate is a digital record of sustainability verified by the WasteWise circular economy protocol. It is legally binding between the participating parties as a record of environmental compliance.', 60, 730, { align: 'center', width: 492 });
+};
+
+// @desc    Confirm receipt of waste and generate Green Certificate
+// @route   POST /api/listings/:id/confirm-receipt
+// @access  Private (Buyer)
+const confirmReceipt = async (req, res) => {
+  try {
+    const listingId = req.params.id;
+    const listing = await Listing.findById(listingId).populate('sellerId', 'name email');
+    
+    if (!listing) {
+      return res.status(404).json({ message: 'Listing not found' });
+    }
+
+    if (listing.status !== 'sold' && listing.status !== 'paid') {
+      return res.status(400).json({ message: 'Listing must be in "sold" or "paid" status to confirm receipt.' });
+    }
+
+    // Calculate CO2 Saved
+    const CO2_SAVED = listing.weight * 15.6;
+
+    // Generate SHA-256 Hash
+    const verificationData = `${listing._id}-${listing.sellerId._id}-${listing.weight}-${Date.now()}`;
+    const hash = crypto.createHash('sha256').update(verificationData).digest('hex');
+
+    // Update Listing
+    listing.status = 'completed';
+    listing.carbonSaved = CO2_SAVED;
+    listing.verificationId = hash;
+    await listing.save();
+
+    // Find Agreement to get Buyer Name
+    const agreement = await Agreement.findOne({ listingId: listing._id }).populate('buyerId', 'name email');
+    const buyerName = agreement?.buyerId?.name || 'Verified Buyer';
+
+    // Generate PDF in memory
+    const doc = new PDFDocument({ margin: 0, size: 'LETTER' });
+    let buffers = [];
+    doc.on('data', buffers.push.bind(buffers));
+    
+    // Create a promise to handle PDF completion
+    const pdfBuffer = await new Promise((resolve, reject) => {
+      doc.on('end', () => {
+        resolve(Buffer.concat(buffers));
+      });
+      doc.on('error', reject);
+
+      drawCertificate(doc, {
+        sellerName: listing.sellerId.name,
+        buyerName,
+        wasteType: listing.wasteType,
+        weight: listing.weight,
+        co2Saved: CO2_SAVED,
+        date: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' }),
+        hash,
+        listingId: listing._id.toString().toUpperCase()
+      });
+
+      doc.end();
+    });
+
+    // Email PDF to Seller
+    await sendNotification(
+      listing.sellerId._id,
+      'certificate',
+      `Congratulations! Your premium Green Certificate for "${listing.wasteType}" is ready. You have successfully diverted ${listing.weight}kg of industrial waste.`,
+      listing._id,
+      {
+        filename: `WasteWise_Certificate_${listing._id}.pdf`,
+        content: pdfBuffer,
+        contentType: 'application/pdf'
+      }
+    );
+
+    res.status(200).json({
+      message: 'Receipt confirmed and premium Green Certificate generated successfully.',
+      listing
+    });
+
+  } catch (error) {
+    console.error('Error in confirmReceipt:', error);
+    res.status(500).json({ message: 'Server error confirming receipt' });
+  }
+};
+
+// @desc    Download Green Certificate PDF
+// @route   GET /api/listings/:id/certificate
+// @access  Private
+const getCertificate = async (req, res) => {
+  try {
+    const listingId = req.params.id;
+    const listing = await Listing.findById(listingId).populate('sellerId', 'name');
+    
+    if (!listing || listing.status !== 'completed') {
+      return res.status(404).json({ message: 'Certificate not found or listing not completed.' });
+    }
+
+    const agreement = await Agreement.findOne({ listingId: listing._id }).populate('buyerId', 'name');
+    const buyerName = agreement?.buyerId?.name || 'Verified Buyer';
+
+    const doc = new PDFDocument({ margin: 0, size: 'LETTER' });
+    
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename=WasteWise_Certificate_${listingId}.pdf`);
+    
+    doc.pipe(res);
+
+    drawCertificate(doc, {
+      sellerName: listing.sellerId.name,
+      buyerName,
+      wasteType: listing.wasteType,
+      weight: listing.weight,
+      co2Saved: listing.carbonSaved,
+      date: new Date(listing.updatedAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' }),
+      hash: listing.verificationId,
+      listingId: listing._id.toString().toUpperCase()
+    });
+
+    doc.end();
+
+  } catch (error) {
+    console.error('Error in getCertificate:', error);
+    res.status(500).json({ message: 'Server error generating certificate' });
+  }
+};
+
 module.exports = {
   createListing,
   getAllActiveListings,
@@ -333,5 +549,7 @@ module.exports = {
   getBuyerBids,
   placeBid,
   completePayment,
-  getFailedTransactions
+  getFailedTransactions,
+  confirmReceipt,
+  getCertificate
 };

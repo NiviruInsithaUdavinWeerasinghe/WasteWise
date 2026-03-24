@@ -39,9 +39,16 @@ const listingSchema = new mongoose.Schema({
   },
     status: {
     type: String,
-    enum: ['active', 'sold', 'pending_payment', 'failed_payment', 'expired', 'no_bids'],
+    enum: ['active', 'sold', 'pending_payment', 'paid', 'completed', 'failed_payment', 'expired', 'no_bids'],
     default: 'active',
     required: true
+  },
+  carbonSaved: {
+    type: Number,
+    default: 0
+  },
+  verificationId: {
+    type: String
   },
   pickupResponsibility: {
     type: String,
