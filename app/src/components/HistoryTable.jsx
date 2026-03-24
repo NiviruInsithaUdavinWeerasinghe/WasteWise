@@ -192,7 +192,7 @@ export default function HistoryTable({ role, data = [], title = "Recent History"
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
-                              handleDownloadSLA(item._id);
+                              handleDownloadSLA(uniqueKey);
                             }}
                             className="text-[10px] font-bold text-blue-400 hover:text-blue-300 transition-colors flex items-center justify-center gap-1 mt-0.5"
                           >
