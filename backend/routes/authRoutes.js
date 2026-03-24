@@ -34,4 +34,22 @@ router.put('/approve/:id', protect, admin, async (req, res) => {
   }
 });
 
+// Search users by email (for contract proposals)
+router.get('/search', protect, async (req, res) => {
+  try {
+    const { email } = req.query;
+    if (!email || email.length < 3) {
+      return res.status(400).json({ message: 'Enter at least 3 characters to search' });
+    }
+    const users = await User.find({
+      email: { $regex: email, $options: 'i' },
+      _id: { $ne: req.user.id } // Exclude self
+    }).select('_id name email role').limit(10);
+    res.json(users);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error searching users' });
+  }
+});
+
 module.exports = router;

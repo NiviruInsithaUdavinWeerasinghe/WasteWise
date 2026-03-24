@@ -8,7 +8,7 @@ const notificationSchema = new mongoose.Schema({
   },
   type: {
     type: String,
-    enum: ['outbid', 'ending_soon', 'certificate', 'auction_won', 'auction_sold', 'auction_ended_empty', 'agreement_created', 'payment_received', 'auction_lost', 'payment_defaulted', 'admin_alert'],
+    enum: ['outbid', 'ending_soon', 'certificate', 'auction_won', 'auction_sold', 'auction_ended_empty', 'agreement_created', 'payment_received', 'auction_lost', 'payment_defaulted', 'admin_alert', 'contract_proposed', 'contract_signed', 'contract_established'],
     required: true
   },
   message: {

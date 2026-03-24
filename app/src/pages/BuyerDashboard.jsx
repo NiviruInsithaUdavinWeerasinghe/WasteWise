@@ -8,6 +8,8 @@ import { Package, TrendingUp, DollarSign, CloudRain, Star, Truck, CheckCircle, F
 import { motion } from 'framer-motion';
 import { getOptimizedUrl } from '../services/cloudinaryService';
 import DeliveryDetailsModal from '../components/DeliveryDetailsModal.jsx';
+import ContractNegotiation from '../components/ContractNegotiation.jsx';
+import ProposeContractModal from '../components/ProposeContractModal.jsx';
 
 export default function BuyerDashboard() {
   const { user } = useAuth();
@@ -16,9 +18,15 @@ export default function BuyerDashboard() {
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [paymentAmount, setPaymentAmount] = useState(0);
   const [paymentListingId, setPaymentListingId] = useState(null);
-  const [myBids, setMyBids] = useState({ active: [], participated: [], won: [], pending: [], paid: [] });
   const [pendingDeliveries, setPendingDeliveries] = useState([]);
   const [selectedDelivery, setSelectedDelivery] = useState(null);
+  const [contracts, setContracts] = useState([]);
+  const [slaTab, setSlaTab] = useState('long-term');
+  const [selectedContractId, setSelectedContractId] = useState(null);
+  const [showContractModal, setShowContractModal] = useState(false);
+  const [myBids, setMyBids] = useState({ active: [], participated: [], won: [], pending: [], paid: [] });
+  const [auctionSlas, setAuctionSlas] = useState([]);
+  const [showProposeModal, setShowProposeModal] = useState(false);
 
   const formatDeadline = (endTime) => {
     if (!endTime) return "Ends Soon";
@@ -109,9 +117,33 @@ export default function BuyerDashboard() {
     }
   };
 
+  const fetchContractsAndSLAs = async () => {
+    try {
+      // Fetch Long-term Contracts
+      const cRes = await fetch('http://localhost:5000/api/contracts/my-contracts', {
+        headers: { Authorization: `Bearer ${user.token}` }
+      });
+      if (cRes.ok) setContracts(await cRes.ok ? await cRes.json() : []);
+
+      // Filter Auction SLAs from paid/completed bids
+      const slas = myBids.paid.filter(item => ['sold', 'paid', 'completed'].includes(item.status));
+      setAuctionSlas(slas);
+    } catch (error) {
+      console.error("Failed to fetch contracts:", error);
+    }
+  };
+
   useEffect(() => {
-    if (user?.id) fetchMyBids();
+    if (user?.id) {
+      fetchMyBids();
+    }
   }, [user]);
+
+  useEffect(() => {
+    if (user?.id && myBids.paid) {
+      fetchContractsAndSLAs();
+    }
+  }, [user, myBids.paid]);
 
   const handlePlaceBid = async (amount) => {
     try {
@@ -349,30 +381,90 @@ export default function BuyerDashboard() {
                </div>
             </div>
 
-            {/* Compliance & SLAs */}
+            {/* Contracts & SLAs */}
             <div className="bg-industrial-900 p-6 rounded-xl shadow-lg border border-industrial-800">
                <div className="flex justify-between items-center mb-6">
                   <h2 className="font-bold text-white flex items-center gap-2">
-                    <FileSignature size={20} className="text-nature-500" /> Compliance & SLAs
+                    <FileSignature size={20} className="text-nature-500" /> Contracts & SLAs
                   </h2>
-                  <span className="bg-nature-500/10 text-nature-400 text-xs font-bold px-2 py-1 rounded-md border border-nature-500/20">2 Active</span>
+                  <button
+                    onClick={() => setShowProposeModal(true)}
+                    className="text-xs font-bold text-nature-500 hover:text-nature-400 bg-nature-500/10 hover:bg-nature-500/20 border border-nature-500/20 px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5"
+                  >
+                    <FileSignature size={12} /> Propose Contract
+                  </button>
                </div>
                
-               <div className="space-y-4">
-                  <div className="group cursor-pointer p-4 rounded-xl border border-industrial-800 bg-industrial-950/50 hover:border-nature-500/50 transition-colors">
-                     <div className="flex justify-between items-center mb-2">
-                        <h4 className="text-white text-sm font-bold truncate">Monthly Polyester Supply</h4>
-                        <span className="text-nature-400 text-xs font-bold">TexFab Lanka</span>
-                     </div>
-                     <p className="text-xs text-industrial-500">Agreement valid until Dec 2025. 1.5 Tonnes/mo.</p>
-                  </div>
-                  <div className="group cursor-pointer p-4 rounded-xl border border-industrial-800 bg-industrial-950/50 hover:border-nature-500/50 transition-colors">
-                     <div className="flex justify-between items-center mb-2">
-                        <h4 className="text-white text-sm font-bold truncate">Q4 Denim Offcuts</h4>
-                        <span className="text-nature-400 text-xs font-bold">Global Fibers</span>
-                     </div>
-                     <p className="text-xs text-industrial-500">Fulfillment in progress. Next pickup: Oct 28.</p>
-                  </div>
+               <div className="flex gap-4 mb-6 border-b border-industrial-800">
+                  <button 
+                    onClick={() => setSlaTab('long-term')}
+                    className={`pb-2 text-xs font-bold transition-colors border-b-2 ${slaTab === 'long-term' ? 'border-nature-500 text-nature-500' : 'border-transparent text-industrial-500'}`}
+                  >
+                    Long-Term Contracts
+                  </button>
+                  <button 
+                    onClick={() => setSlaTab('auctions')}
+                    className={`pb-2 text-xs font-bold transition-colors border-b-2 ${slaTab === 'auctions' ? 'border-nature-500 text-nature-500' : 'border-transparent text-industrial-500'}`}
+                  >
+                    Auction SLAs
+                  </button>
+               </div>
+
+               <div className="space-y-4 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
+                  {slaTab === 'long-term' ? (
+                    contracts.length > 0 ? (
+                      contracts.map(c => (
+                        <div 
+                          key={c._id} 
+                          onClick={() => { setSelectedContractId(c._id); setShowContractModal(true); }}
+                          className="group cursor-pointer p-4 rounded-xl border border-industrial-800 bg-industrial-950/50 hover:border-nature-500/50 transition-colors"
+                        >
+                           <div className="flex justify-between items-center mb-2">
+                              <h4 className="text-white text-sm font-bold truncate">{c.wasteType} Supply</h4>
+                              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md border ${c.status === 'active' ? 'bg-nature-500/10 text-nature-400 border-nature-500/20' : 'bg-industrial-800 text-industrial-500 border-industrial-700'}`}>
+                                {c.status.toUpperCase()}
+                              </span>
+                           </div>
+                           <p className="text-xs text-industrial-500">{c.monthlyQuantityKg}kg/mo &bull; {c.durationMonths} months</p>
+                           {c.status === 'active' && (
+                             <a 
+                               href={`http://localhost:5000/api/contracts/${c._id}/download?token=${user.token}`} 
+                               onClick={(e) => e.stopPropagation()}
+                               className="text-[10px] font-bold text-nature-500 hover:text-nature-400 flex items-center gap-1 mt-2"
+                             >
+                               <FileSignature size={12} /> Download PDF
+                             </a>
+                           )}
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-center py-8 text-industrial-500 text-xs">No long-term contracts found.</p>
+                    )
+                  ) : (
+                    auctionSlas.length > 0 ? (
+                      auctionSlas.map(sla => (
+                        <div key={sla.id} className="p-4 rounded-xl border border-industrial-800 bg-industrial-950/50">
+                           <div className="flex justify-between items-center mb-2">
+                              <h4 className="text-white text-sm font-bold truncate">{sla.title}</h4>
+                              <span className="text-nature-400 text-xs font-bold">{sla.sellerName}</span>
+                           </div>
+                           <button 
+                             onClick={() => {
+                               const link = document.createElement('a');
+                               link.href = `http://localhost:5000/api/agreements/${sla.id}/download`;
+                               // Since we need auth, better use fetch and blob in HistoryTable, but for direct link:
+                               window.open(`http://localhost:5000/api/agreements/${sla.id}/download?token=${user.token}`, '_blank');
+                             }}
+                             className="text-[10px] font-bold text-blue-400 hover:text-blue-300 flex items-center gap-1"
+                           >
+                             <FileSignature size={12} /> Download Trade Agreement (PDF)
+                           </button>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-center py-8 text-industrial-500 text-xs">No auction SLAs found.</p>
+                    )
+                  )}
                </div>
             </div>
 
@@ -405,6 +497,19 @@ export default function BuyerDashboard() {
         onClose={() => setSelectedDelivery(null)}
         delivery={selectedDelivery}
         onConfirmReceipt={handleConfirmReceipt}
+      />
+
+      <ContractNegotiation 
+        isOpen={showContractModal}
+        onClose={() => setShowContractModal(false)}
+        contractId={selectedContractId}
+        onUpdate={fetchContractsAndSLAs}
+      />
+
+      <ProposeContractModal
+        isOpen={showProposeModal}
+        onClose={() => setShowProposeModal(false)}
+        onSuccess={fetchContractsAndSLAs}
       />
     </div>
   );
