@@ -73,7 +73,14 @@ export default function BuyerDashboard() {
             realBids: listing.bids,
             startingBid: listing.startingBid,
             description: listing.description,
-            minBidIncrease: listing.minBidIncrease
+            minBidIncrease: listing.minBidIncrease,
+            isWinner: (listing.bids?.length > 0 && (['sold', 'pending_payment', 'paid'].includes(listing.status))) 
+               ? (() => {
+                  const highestBid = listing.bids.reduce((prev, current) => (prev.amount > current.amount) ? prev : current);
+                  const winnerId = highestBid.userId._id || highestBid.userId;
+                  return winnerId === user?.id;
+               })()
+               : false
           };
         });
         
@@ -247,14 +254,14 @@ export default function BuyerDashboard() {
                                 <span className={`text-xs font-bold px-3 py-1 rounded-full mt-1.5 border ${['sold', 'paid'].includes(b.status) ? 'bg-nature-500/10 text-nature-400 border-nature-500/20' : b.status === 'pending_payment' ? 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20' : 'bg-red-500/10 text-red-400 border-red-500/20'}`}>
                                    {['sold', 'paid'].includes(b.status) ? 'Completed' : b.status === 'pending_payment' ? 'Pending Payment' : 'Closed'}
                                 </span>
-                                {b.status === 'pending_payment' && (
-                                   <button 
-                                      onClick={(e) => { e.stopPropagation(); initiatePayment(b); }} 
-                                      className="mt-3 w-full bg-nature-600 hover:bg-nature-500 text-white text-xs font-bold py-2 rounded-lg transition-colors shadow-lg"
-                                   >
-                                      Pay Now
-                                   </button>
-                                )}
+                                 {b.status === 'pending_payment' && b.isWinner && (
+                                    <button 
+                                       onClick={(e) => { e.stopPropagation(); initiatePayment(b); }} 
+                                       className="mt-3 w-full bg-nature-600 hover:bg-nature-500 text-white text-xs font-bold py-2 rounded-lg transition-colors shadow-lg"
+                                    >
+                                       Pay Now
+                                    </button>
+                                 )}
                              </div>
                          </div>
                        )
