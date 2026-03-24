@@ -16,6 +16,7 @@ export default function BuyerDashboard() {
   const [paymentAmount, setPaymentAmount] = useState(0);
   const [paymentListingId, setPaymentListingId] = useState(null);
   const [myBids, setMyBids] = useState({ active: [], participated: [], won: [], pending: [] });
+  const [pendingDeliveries, setPendingDeliveries] = useState([]);
 
   const formatDeadline = (endTime) => {
     if (!endTime) return "Ends Soon";
@@ -95,8 +96,10 @@ export default function BuyerDashboard() {
            return false;
         });
         const pending = won.filter(item => item.status === 'pending_payment');
+        const deliveries = won.filter(item => item.status === 'sold' || item.status === 'paid');
 
         setMyBids({ active, participated, won, pending });
+        setPendingDeliveries(deliveries);
       }
     } catch (error) {
       console.error("Failed to fetch bids:", error);
@@ -158,6 +161,30 @@ export default function BuyerDashboard() {
     } catch (error) {
       console.error("Payment error:", error);
       alert('An error occurred during payment.');
+    }
+  };
+
+  const handleConfirmReceipt = async (listingId) => {
+    if (!window.confirm("Confirm receipt of this material? This will finalize the trade agreement and generate the Green Certificate.")) return;
+    
+    try {
+      const response = await fetch(`http://localhost:5000/api/listings/${listingId}/confirm-receipt`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${user.token}`
+        }
+      });
+      const data = await response.json();
+      if (response.ok) {
+        alert('Receipt confirmed! The Green Certificate has been generated and emailed to the seller.');
+        fetchMyBids();
+      } else {
+        alert(data.message || 'Failed to confirm receipt');
+      }
+    } catch (error) {
+      console.error("Confirm receipt error:", error);
+      alert('An error occurred while confirming receipt.');
     }
   };
 
@@ -296,18 +323,29 @@ export default function BuyerDashboard() {
                <p className="text-xs text-industrial-400 mb-6">Confirm receipt of bulk waste from factories to finalize agreements and trigger Green Certificates.</p>
                
                <div className="space-y-4">
-                  <div className="p-4 rounded-xl border border-blue-500/20 bg-blue-500/5">
-                     <div className="flex justify-between items-start mb-3">
-                        <div>
-                           <h4 className="font-bold text-white">Cotton Offcuts (500kg)</h4>
-                           <p className="text-xs text-industrial-400 mt-1">From: EcoRecycle Pvt Ltd</p>
+                  {pendingDeliveries.length > 0 ? (
+                     pendingDeliveries.map(listing => (
+                        <div key={listing.id} className="p-4 rounded-xl border border-blue-500/20 bg-blue-500/5">
+                           <div className="flex justify-between items-start mb-3">
+                              <div className="min-w-0">
+                                 <h4 className="font-bold text-white truncate">{listing.title}</h4>
+                                 <p className="text-xs text-industrial-400 mt-1">From: {listing.sellerName}</p>
+                              </div>
+                              <span className="text-xs font-bold text-blue-400 bg-blue-500/10 px-2 py-1 rounded-md border border-blue-500/20 shrink-0">In Transit</span>
+                           </div>
+                           <button 
+                              onClick={() => handleConfirmReceipt(listing.id)}
+                              className="w-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold py-2.5 rounded-lg transition-colors flex items-center justify-center gap-2 shadow-md shadow-blue-500/20"
+                           >
+                              <CheckCircle size={16} /> Confirm Receipt
+                           </button>
                         </div>
-                        <span className="text-xs font-bold text-blue-400 bg-blue-500/10 px-2 py-1 rounded-md border border-blue-500/20">In Transit</span>
+                     ))
+                  ) : (
+                     <div className="p-8 text-center border border-industrial-800 rounded-xl bg-industrial-950/30">
+                        <p className="text-industrial-500 text-xs">No pending deliveries to confirm.</p>
                      </div>
-                     <button className="w-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold py-2.5 rounded-lg transition-colors flex items-center justify-center gap-2 shadow-md shadow-blue-500/20">
-                        <CheckCircle size={16} /> Confirm Receipt
-                     </button>
-                  </div>
+                  )}
                </div>
             </div>
 

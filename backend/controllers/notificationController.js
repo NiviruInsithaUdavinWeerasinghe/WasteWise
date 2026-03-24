@@ -22,7 +22,7 @@ const transporter = nodemailer.createTransport({
 /**
  * Reusable function to dispatch both email and in-app Notification
  */
-const sendNotification = async (userId, type, message, relatedEntityId = null) => {
+const sendNotification = async (userId, type, message, relatedEntityId = null, attachment = null) => {
   try {
     // 1. Create DB Notification
     await Notification.create({
@@ -57,6 +57,11 @@ const sendNotification = async (userId, type, message, relatedEntityId = null) =
           }
         ]
       };
+
+      // Add dynamic attachment if provided (e.g., Certificate PDF)
+      if (attachment) {
+        mailOptions.attachments.push(attachment);
+      }
 
       // We do NOT await this. It runs in the background.
       transporter.sendMail(mailOptions)
