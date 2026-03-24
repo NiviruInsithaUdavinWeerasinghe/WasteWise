@@ -60,11 +60,11 @@ const createListing = async (req, res) => {
       imageUrl
     });
 
-    // Automatically generate a "Green Certificate" alert
+    // Automatically generate a "Listing Created" alert instead of Green Certificate
     await sendNotification(
       sellerId,
-      'certificate',
-      `Congratulations! A Green Certificate for your ${weight}kg upload of "${wasteType}" has been successfully generated and recorded.`,
+      'info',
+      `Your listing for ${weight}kg of "${wasteType}" has been successfully published.`,
       listing._id
     );
 

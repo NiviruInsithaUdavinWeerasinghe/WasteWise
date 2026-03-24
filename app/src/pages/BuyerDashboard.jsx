@@ -16,7 +16,7 @@ export default function BuyerDashboard() {
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [paymentAmount, setPaymentAmount] = useState(0);
   const [paymentListingId, setPaymentListingId] = useState(null);
-  const [myBids, setMyBids] = useState({ active: [], participated: [], won: [], pending: [] });
+  const [myBids, setMyBids] = useState({ active: [], participated: [], won: [], pending: [], paid: [] });
   const [pendingDeliveries, setPendingDeliveries] = useState([]);
   const [selectedDelivery, setSelectedDelivery] = useState(null);
 
@@ -90,7 +90,7 @@ export default function BuyerDashboard() {
         const active = formattedItems.filter(item => !item.isClosed && item.status === 'active');
         const participated = formattedItems.filter(item => item.isClosed || item.status !== 'active');
         const won = participated.filter(item => {
-           if (['sold', 'pending_payment', 'paid'].includes(item.status)) {
+           if (['sold', 'pending_payment', 'paid', 'completed'].includes(item.status)) {
               if (!item.realBids || item.realBids.length === 0) return false;
               const highestBid = item.realBids.reduce((prev, current) => (prev.amount > current.amount) ? prev : current);
               return highestBid.userId._id === user?.id || highestBid.userId === user?.id;
@@ -98,9 +98,10 @@ export default function BuyerDashboard() {
            return false;
         });
         const pending = won.filter(item => item.status === 'pending_payment');
+        const paid = won.filter(item => ['sold', 'paid', 'completed'].includes(item.status));
         const deliveries = won.filter(item => item.status === 'sold' || item.status === 'paid');
 
-        setMyBids({ active, participated, won, pending });
+        setMyBids({ active, participated, won, pending, paid });
         setPendingDeliveries(deliveries);
       }
     } catch (error) {
@@ -247,6 +248,7 @@ export default function BuyerDashboard() {
                <div className="px-6 mb-4 border-b border-industrial-800 flex gap-6 text-sm font-bold overflow-x-auto whitespace-nowrap custom-scrollbar">
                   <button onClick={() => setActiveTab('active')} className={`pb-3 border-b-2 transition-colors ${activeTab === 'active' ? 'border-nature-500 text-nature-500' : 'border-transparent text-industrial-500 hover:text-industrial-300'}`}>Active ({myBids.active?.length || 0})</button>
                   <button onClick={() => setActiveTab('pending')} className={`pb-3 border-b-2 transition-colors ${activeTab === 'pending' ? 'border-yellow-500 text-yellow-500' : 'border-transparent text-industrial-500 hover:text-industrial-300'}`}>Pending Payment ({myBids.pending?.length || 0})</button>
+                  <button onClick={() => setActiveTab('paid')} className={`pb-3 border-b-2 transition-colors ${activeTab === 'paid' ? 'border-blue-500 text-blue-500' : 'border-transparent text-industrial-500 hover:text-industrial-300'}`}>Paid ({myBids.paid?.length || 0})</button>
                   <button onClick={() => setActiveTab('participated')} className={`pb-3 border-b-2 transition-colors ${activeTab === 'participated' ? 'border-nature-500 text-nature-500' : 'border-transparent text-industrial-500 hover:text-industrial-300'}`}>Participated ({myBids.participated?.length || 0})</button>
                   <button onClick={() => setActiveTab('won')} className={`pb-3 border-b-2 transition-colors ${activeTab === 'won' ? 'border-nature-500 text-nature-500' : 'border-transparent text-industrial-500 hover:text-industrial-300'}`}>Won ({myBids.won?.length || 0})</button>
                </div>
@@ -276,8 +278,8 @@ export default function BuyerDashboard() {
                             </div>
                              <div className="flex md:flex-col items-center md:items-end justify-between w-full md:w-auto mt-2 md:mt-0 pt-3 md:pt-0 border-t md:border-t-0 border-industrial-800 shrink-0">
                                 <div className="font-bold font-mono text-white text-lg">{b.currentBid}</div>
-                                <span className={`text-xs font-bold px-3 py-1 rounded-full mt-1.5 border ${['sold', 'paid'].includes(b.status) ? 'bg-nature-500/10 text-nature-400 border-nature-500/20' : b.status === 'pending_payment' ? 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20' : 'bg-red-500/10 text-red-400 border-red-500/20'}`}>
-                                   {['sold', 'paid'].includes(b.status) ? 'Completed' : b.status === 'pending_payment' ? 'Pending Payment' : 'Closed'}
+                                <span className={`text-xs font-bold px-3 py-1 rounded-full mt-1.5 border ${b.status === 'completed' ? 'bg-nature-500/10 text-nature-400 border-nature-500/20' : ['sold', 'paid'].includes(b.status) ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' : b.status === 'pending_payment' ? 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20' : 'bg-red-500/10 text-red-400 border-red-500/20'}`}>
+                                   {b.status === 'completed' ? 'Received' : ['sold', 'paid'].includes(b.status) ? 'Paid' : b.status === 'pending_payment' ? 'Pending Payment' : 'Closed'}
                                 </span>
                                  {b.status === 'pending_payment' && b.isWinner && (
                                     <button 
