@@ -201,53 +201,66 @@ const placeBid = async (req, res) => {
   }
 };
 
-// @desc    Complete payment for a won auction
-// @route   POST /api/listings/:id/pay
-// @access  Private
 const completePayment = async (req, res) => {
   try {
     const listingId = req.params.id;
     const listing = await Listing.findById(listingId);
     
-    let buyerId = req.user?.id;
-    if (!buyerId && listing && listing.sellingMethod === 'auction' && listing.bids && listing.bids.length > 0) {
-      const highestBid = listing.bids.reduce((prev, current) => (prev.amount > current.amount) ? prev : current);
-      buyerId = highestBid.userId;
-    }
-
     if (!listing) {
       return res.status(404).json({ message: 'Listing not found' });
     }
 
-    if (listing.status !== 'active' && listing.status !== 'pending_payment') {
-      return res.status(400).json({ message: 'This item is no longer available for payment' });
-    }
+    const currentUserId = req.user.id;
 
-    // Determine the final amount (if auction, use highest bid; if direct, use price)
-    let finalAmount = 0;
+    // 1. Validation for Auctions
     if (listing.sellingMethod === 'auction') {
-      if (listing.bids.length === 0) {
-        return res.status(400).json({ message: 'No bids placed on this auction' });
+      // Must be in pending_payment status (auction ended via cron)
+      if (listing.status !== 'pending_payment') {
+        return res.status(400).json({ 
+          message: listing.status === 'active' 
+            ? 'This auction is still active. Please wait for it to end.' 
+            : 'This auction is no longer available for payment.' 
+        });
       }
-      finalAmount = Math.max(...listing.bids.map(b => b.amount));
+
+      // Must have bids
+      if (!listing.bids || listing.bids.length === 0) {
+        return res.status(400).json({ message: 'No bids placed on this auction.' });
+      }
+
+      // MUST be the winner
+      const highestBid = listing.bids.reduce((prev, current) => (prev.amount > current.amount) ? prev : current);
+      const winnerId = highestBid.userId.toString();
+
+      if (currentUserId !== winnerId) {
+        return res.status(403).json({ 
+          message: 'Access denied. Only the auction winner can complete this payment.' 
+        });
+      }
+
+      var buyerId = winnerId;
+      var finalAmount = highestBid.amount;
+
     } else {
-      finalAmount = listing.price;
+      // 2. Validation for Direct Sales
+      if (listing.status !== 'active') {
+        return res.status(400).json({ message: 'This item is no longer available for purchase.' });
+      }
+      
+      var buyerId = currentUserId;
+      var finalAmount = listing.price;
     }
 
     // Stripe Commission Logic (3% platform fee)
     const commission = finalAmount * 0.03;
     const sellerTransfer = finalAmount - commission;
 
-    console.log(`[Stripe Simulation] Processing payment of LKR ${finalAmount}`);
-    console.log(`[Stripe Simulation] Platform Commission (3%): LKR ${commission}`);
-    console.log(`[Stripe Simulation] Transferring to Seller: LKR ${sellerTransfer}`);
+    console.log(`[Stripe Simulation] Processing payment of LKR ${finalAmount} for Listing ${listingId}`);
+    console.log(`[Stripe Simulation] Payer: ${currentUserId}`);
 
-    // Create a PaymentIntent with the final amount multiplied by 100
+    // Create a PaymentIntent simulation
     let paymentIntentId = `pi_simulated_${Date.now()}`;
     let clientSecret = `sec_simulated_${Date.now()}`;
-    
-    // Bypassing Stripe actual API request to prevent crashing on dummy keys
-    console.log('[Stripe Simulation] Using fallback ID due to dummy secret key.');
 
     // Instantiate Agreement
     const Agreement = require('../models/Agreement');
