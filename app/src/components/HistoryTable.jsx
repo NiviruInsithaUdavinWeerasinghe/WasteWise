@@ -119,7 +119,7 @@ export default function HistoryTable({ role, data = [], title = "Recent History"
                 item.status === 'expired' ? 'Expired' : 'Active'
               ) : item.status;
               let mappedPartner = '-';
-              if (isDBObj && (item.status === 'sold' || item.status === 'paid' || item.status === 'pending_payment')) {
+              if (isDBObj && (item.status === 'sold' || item.status === 'paid' || item.status === 'pending_payment' || item.status === 'completed')) {
                 if (item.bids && item.bids.length > 0) {
                   // Find highest bid
                   const highestBid = item.bids.reduce((prev, current) => (prev.amount > current.amount) ? prev : current);

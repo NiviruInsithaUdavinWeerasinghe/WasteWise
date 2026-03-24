@@ -334,88 +334,253 @@ const LOGO_PATH = path.join(__dirname, '../../app/src/assets/logo(v2.2).png');
 
 /**
  * Shared helper to draw a premium Green Certificate
+ * Luxury design with decorative borders, corner ornaments, gold/green palette
  */
 const drawCertificate = (doc, data) => {
   const { sellerName, buyerName, wasteType, weight, co2Saved, date, hash, listingId } = data;
 
-  // --- Background & Border ---
-  doc.rect(0, 0, 612, 792).fill('#ffffff'); // White background
-  
-  // Subtle light green header bar
-  doc.rect(0, 0, 612, 120).fill('#f0fdf4'); // Very light green
-  
-  // Formal Border
-  doc.rect(40, 40, 532, 712).lineWidth(1.5).stroke('#d1d5db');
-  doc.rect(45, 45, 522, 702).lineWidth(0.5).stroke('#16a34a'); // Thin green inner border
+  const PAGE_W = 612;
+  const PAGE_H = 792;
 
-  // --- Header ---
-  try {
-    doc.image(LOGO_PATH, 60, 60, { width: 80 });
-  } catch (err) {
-    console.warn("Logo not found, skipping image.");
-  }
+  // ─── Color palette (matching logo: medium green + teal) ────────
+  const DARK_GREEN   = '#0f6648';  // deep teal-green (logo shadow tone)
+  const MID_GREEN    = '#1a9460';  // medium green (logo mid tone)
+  const BRIGHT_GREEN = '#4ade80';  // bright green (logo highlight)
+  const TEAL         = '#14b8a6';  // teal accent (logo right side)
+  const GOLD         = '#c9a84c';
+  const GOLD_LIGHT   = '#e8d08a';
+  const CREAM        = '#fffef7';
+  const IVORY        = '#f0fdf8';  // very light teal-tinted ivory
 
-  doc.fillColor('#16a34a');
-  doc.fontSize(16).font('Helvetica-Bold').text('WasteWise Platform', 160, 75);
-  doc.fillColor('#6b7280');
-  doc.fontSize(9).font('Helvetica').text('Official Sustainability Verification Service', 160, 95);
+  // ─── Full page background (cream parchment) ───────────────────
+  doc.rect(0, 0, PAGE_W, PAGE_H).fill(CREAM);
 
-  // --- Main Title ---
-  doc.moveDown(5);
-  doc.fillColor('#111827');
-  doc.fontSize(24).font('Helvetica-Bold').text('GREEN CERTIFICATE', { align: 'center' });
-  doc.moveDown(0.2);
-  doc.fontSize(10).font('Helvetica').fillColor('#6b7280').text('Issued for Industrial Waste Diversion Compliance', { align: 'center' });
-  
-  doc.moveDown(1.5);
-  doc.rect(150, doc.y, 312, 1).fill('#e5e7eb');
-  doc.moveDown(2);
+  // ─── Decorative background triangle top-left ──────────────────
+  doc.save();
+  doc.moveTo(0, 0).lineTo(220, 0).lineTo(0, 220).closePath().fill('#0f6648');
+  doc.restore();
 
-  // --- Certification Statement ---
-  doc.fillColor('#374151');
-  doc.fontSize(11).font('Helvetica').text('This document serves as formal verification that the following member organization:', { align: 'center' });
-  doc.moveDown(1);
-  doc.fillColor('#16a34a');
-  doc.fontSize(20).font('Helvetica-Bold').text(sellerName.toUpperCase(), { align: 'center' });
-  doc.moveDown(1);
-  doc.fillColor('#374151');
-  doc.fontSize(11).font('Helvetica').text('has successfully completed a sustainable waste management transaction via the WasteWise circular supply chain network.', { align: 'center', width: 400, indent: 60 });
 
-  // --- Technical Details / Table ---
-  doc.moveDown(3);
-  const startX = 100;
-  const labelWidth = 180;
-  const valueX = startX + labelWidth + 20;
-  let currentY = doc.y;
 
-  const drawDetail = (label, value) => {
-    doc.fillColor('#6b7280').fontSize(9).font('Helvetica-Bold').text(label.toUpperCase(), startX, currentY);
-    doc.fillColor('#111827').fontSize(11).font('Helvetica').text(value, valueX, currentY);
-    currentY += 25;
-    // Subtle separator line
-    doc.rect(startX, currentY - 8, 412, 0.5).fill('#f3f4f6');
+  // ─── Outer gold border ────────────────────────────────────────
+  doc.rect(22, 22, PAGE_W - 44, PAGE_H - 44).lineWidth(3).stroke(GOLD);
+
+  // ─── Inner green border ───────────────────────────────────────
+  doc.rect(29, 29, PAGE_W - 58, PAGE_H - 58).lineWidth(1).stroke(TEAL);
+
+  // ─── Second inner gold border ─────────────────────────────────
+  doc.rect(34, 34, PAGE_W - 68, PAGE_H - 68).lineWidth(0.6).stroke(GOLD_LIGHT);
+
+  // ─── Corner ornament helper ───────────────────────────────────
+  const drawCorner = (cx, cy, rotation) => {
+    doc.save();
+    doc.translate(cx, cy).rotate(rotation);
+    // L-shaped gold corner bracket
+    doc.moveTo(-26, -2).lineTo(-2, -2).lineTo(-2, -26)
+       .lineWidth(3).stroke(GOLD);
+    doc.moveTo(-32, -2).lineTo(-2, -2).lineTo(-2, -32)
+       .lineWidth(0.8).stroke(GOLD_LIGHT);
+    // Small diamond ornament at corner
+    doc.save();
+    doc.translate(-2, -2);
+    doc.moveTo(0, -6).lineTo(5, 0).lineTo(0, 6).lineTo(-5, 0).closePath().fill(GOLD);
+    doc.restore();
+    doc.restore();
   };
 
-  drawDetail('Material Diverted', `${weight} KG of ${wasteType}`);
-  drawDetail('Verified Recipient', buyerName);
-  drawDetail('Certification Date', date);
-  drawDetail('Audit Reference ID', listingId);
+  // Four corners (top-left, top-right, bottom-right, bottom-left)
+  drawCorner(22, 22,   0);
+  drawCorner(PAGE_W - 22, 22,   90);
+  drawCorner(PAGE_W - 22, PAGE_H - 22, 180);
+  drawCorner(22, PAGE_H - 22, 270);
 
-  // --- Impact Summary ---
-  currentY += 20;
-  doc.rect(startX, currentY, 412, 60).fill('#f9fafb');
-  doc.fillColor('#16a34a').fontSize(10).font('Helvetica-Bold').text('ENVIRONMENTAL IMPACT SUMMARY', startX + 20, currentY + 15);
-  doc.fillColor('#111827').fontSize(14).font('Helvetica-Bold').text(`${co2Saved.toFixed(2)} KG CO2e AVOIDED`, startX + 20, currentY + 32);
+  // ─── Top green header band ────────────────────────────────────
+  doc.rect(34, 34, PAGE_W - 68, 95).fill(DARK_GREEN);
 
-  // --- Verification Footer ---
-  doc.fillColor('#9ca3af');
-  doc.fontSize(8).font('Helvetica-Bold').text('BLOCKCHAIN VERIFICATION HASH', 60, 680);
-  doc.fillColor('#16a34a');
-  doc.fontSize(7).font('Courier').text(hash, 60, 692, { width: 492 });
+  // ─── Header: logo + brand name ────────────────────────────────
+  try {
+    doc.image(LOGO_PATH, 52, 46, { width: 68 });
+  } catch (err) {
+    console.warn('Logo not found, skipping image.');
+  }
 
-  // Footer Disclaimer
-  doc.fillColor('#9ca3af');
-  doc.fontSize(7).font('Helvetica').text('This certificate is a digital record of sustainability verified by the WasteWise circular economy protocol. It is legally binding between the participating parties as a record of environmental compliance.', 60, 730, { align: 'center', width: 492 });
+  doc.fillColor('#ffffff').fontSize(17).font('Helvetica-Bold')
+     .text('WasteWise Platform', 135, 55, { lineBreak: false });
+  doc.fillColor(GOLD_LIGHT).fontSize(8.5).font('Helvetica')
+     .text('OFFICIAL SUSTAINABILITY VERIFICATION SERVICE', 135, 77, { lineBreak: false, characterSpacing: 0.8 });
+
+  // Gold divider in header
+  doc.rect(135, 92, 420, 0.8).fill(GOLD);
+
+  doc.fillColor('#d1fae5').fontSize(8).font('Helvetica')
+     .text(`CERTIFICATE NO: ${listingId.slice(0, 16)}`, 135, 100, { lineBreak: false });
+
+  // ─── Circular seal / badge (top-right of header) ─────────────
+  const SEAL_CX = PAGE_W - 78;
+  const SEAL_CY = 82;
+  const SEAL_R  = 36;
+
+  // Outer golden ring
+  doc.circle(SEAL_CX, SEAL_CY, SEAL_R + 5).fill(GOLD);
+  doc.circle(SEAL_CX, SEAL_CY, SEAL_R + 2).fill(DARK_GREEN);
+  doc.circle(SEAL_CX, SEAL_CY, SEAL_R).fill(MID_GREEN);
+  // Teal inner fill accent
+  doc.circle(SEAL_CX, SEAL_CY, SEAL_R - 10).fill(TEAL);
+  // Inner ring
+  doc.circle(SEAL_CX, SEAL_CY, SEAL_R - 8).lineWidth(1).stroke(GOLD_LIGHT);
+
+  // Leaf/star burst lines on seal
+  for (let a = 0; a < 360; a += 30) {
+    const rad = (a * Math.PI) / 180;
+    const x1 = SEAL_CX + (SEAL_R - 14) * Math.cos(rad);
+    const y1 = SEAL_CY + (SEAL_R - 14) * Math.sin(rad);
+    const x2 = SEAL_CX + (SEAL_R - 4) * Math.cos(rad);
+    const y2 = SEAL_CY + (SEAL_R - 4) * Math.sin(rad);
+    doc.moveTo(x1, y1).lineTo(x2, y2).lineWidth(1).stroke(GOLD_LIGHT);
+  }
+
+  doc.fillColor('#ffffff').fontSize(10).font('Helvetica-Bold')
+     .text('VERIFIED', SEAL_CX - 24, SEAL_CY - 5, { width: 48, align: 'center', lineBreak: false });
+
+  // ─── Decorative wave divider below header ─────────────────────
+  doc.save();
+  const WY = 129;
+  doc.moveTo(34, WY);
+  for (let x = 34; x <= PAGE_W - 34; x += 20) {
+    doc.bezierCurveTo(x + 5, WY - 4, x + 15, WY + 4, x + 20, WY);
+  }
+  doc.lineWidth(1.5).stroke(GOLD);
+  doc.restore();
+
+  // ─── "Certificate of" label ───────────────────────────────────
+  doc.fillColor(TEAL).fontSize(11).font('Helvetica')
+     .text('C E R T I F I C A T E   O F', 34, 142, { width: PAGE_W - 68, align: 'center', lineBreak: false, characterSpacing: 3 });
+
+  // ─── Main title ───────────────────────────────────────────────
+  doc.fillColor(MID_GREEN).fontSize(30).font('Helvetica-Bold')
+     .text('GREEN ACHIEVEMENT', 34, 158, { width: PAGE_W - 68, align: 'center', lineBreak: false });
+
+  // Gold underline for title
+  doc.rect(170, 196, 272, 2).fill(GOLD);
+  doc.rect(195, 200, 222, 0.8).fill(GOLD_LIGHT);
+
+  // ─── Subtitle ─────────────────────────────────────────────────
+  doc.fillColor('#4b5563').fontSize(9.5).font('Helvetica')
+     .text('Issued for Industrial Waste Diversion Compliance', 34, 210, { width: PAGE_W - 68, align: 'center', lineBreak: false, characterSpacing: 0.5 });
+
+  // ─── "This certifies that" text ───────────────────────────────
+  doc.fillColor('#374151').fontSize(10.5).font('Helvetica')
+     .text('This document serves as formal verification that the following member organization:', 70, 238, { width: PAGE_W - 140, align: 'center' });
+
+  // ─── Company name with gold underline ─────────────────────────
+  doc.fillColor(MID_GREEN).fontSize(22).font('Helvetica-Bold')
+     .text(sellerName.toUpperCase(), 60, 272, { width: PAGE_W - 120, align: 'center', lineBreak: false, characterSpacing: 1.5 });
+
+  // Decorative underline beneath company name
+  const nameW = Math.min(sellerName.length * 13 + 40, 380);
+  const nameX = (PAGE_W - nameW) / 2;
+  doc.rect(nameX, 298, nameW, 1.5).fill(GOLD);
+  doc.rect(nameX + 10, 301, nameW - 20, 0.5).fill(GOLD_LIGHT);
+
+  doc.fillColor('#374151').fontSize(10.5).font('Helvetica')
+     .text(
+       'has successfully completed a sustainable waste management\ntransaction via the WasteWise circular supply chain network.',
+       70, 313, { width: PAGE_W - 140, align: 'center', lineBreak: true }
+     );
+
+  // ─── Detail rows with alternating shading ─────────────────────
+  const TABLE_X = 62;
+  const TABLE_W = PAGE_W - 124;
+  const LABEL_W = 160;
+  const VAL_X   = TABLE_X + LABEL_W + 12;
+  const VAL_W   = TABLE_W - LABEL_W - 12;
+  const ROW_H   = 30;
+  let rowY       = 366;
+
+  const drawRow = (label, value, shade) => {
+    if (shade) doc.rect(TABLE_X, rowY, TABLE_W, ROW_H).fill(IVORY);
+    doc.fillColor(TEAL).fontSize(8.5).font('Helvetica-Bold')
+       .text(label.toUpperCase() + ":", TABLE_X, rowY + 10, { width: TABLE_W * 0.45, align: 'right', lineBreak: false, characterSpacing: 0.5 });
+    doc.fillColor('#111827').fontSize(10).font('Helvetica')
+       .text(value, TABLE_X + TABLE_W * 0.45 + 15, rowY + 10, { width: TABLE_W * 0.5, align: 'left', lineBreak: false });
+    rowY += ROW_H;
+    // Row separator
+    doc.rect(TABLE_X, rowY, TABLE_W, 0.5).fill('#e5e7eb');
+  };
+
+  // Table rows start here
+
+  drawRow('Material Diverted',  `${weight} KG of ${wasteType}`, false);
+  drawRow('Verified Recipient', buyerName, true);
+  drawRow('Certification Date', date, false);
+  drawRow('Audit Reference ID', listingId, true);
+
+  // ─── Environmental impact box (Lightened) ──────────────────────
+  const BOX_Y = rowY + 16;
+  // Main box with light ivory fill
+  doc.rect(TABLE_X, BOX_Y, TABLE_W, 72).fill(IVORY);
+  // Thin green border
+  doc.rect(TABLE_X, BOX_Y, TABLE_W, 72).lineWidth(0.8).stroke(MID_GREEN);
+  // Gold left accent (thick)
+  doc.rect(TABLE_X, BOX_Y, 5, 72).fill(GOLD);
+
+  doc.fillColor(MID_GREEN).fontSize(9).font('Helvetica-Bold')
+     .text('ENVIRONMENTAL IMPACT SUMMARY', TABLE_X, BOX_Y + 15, { width: TABLE_W, align: 'center', lineBreak: false, characterSpacing: 0.8 });
+
+  doc.fillColor(DARK_GREEN).fontSize(18).font('Helvetica-Bold')
+     .text(`${co2Saved.toFixed(2)} KG CO2e AVOIDED`, TABLE_X, BOX_Y + 36, { width: TABLE_W, align: 'center', lineBreak: false });
+
+  // ─── Fancy decorative divider ─────────────────────────────────
+  const DIV_Y = BOX_Y + 90;
+  doc.rect(62,  DIV_Y, TABLE_W, 0.8).fill(GOLD_LIGHT);
+  doc.circle(PAGE_W / 2, DIV_Y, 5).fill(GOLD);
+  doc.circle(PAGE_W / 2 - 16, DIV_Y, 2.5).fill(GOLD_LIGHT);
+  doc.circle(PAGE_W / 2 + 16, DIV_Y, 2.5).fill(GOLD_LIGHT);
+
+  // ─── Signature area ───────────────────────────────────────────
+  const SIG_Y = DIV_Y + 10;
+  const SIG_PATH = require('path').join(__dirname, '../../app/src/assets/Niviru.png');
+
+  // Left signature block - signature image
+  try {
+    doc.image(SIG_PATH, 105, SIG_Y, { width: 110, height: 40 });
+  } catch (e) {
+    console.warn('Signature image not found, skipping.');
+  }
+  doc.rect(80, SIG_Y + 44, 160, 0.8).fill('#374151');
+  doc.fillColor('#374151').fontSize(9).font('Helvetica')
+     .text('Authorized Signatory', 80, SIG_Y + 49, { width: 160, align: 'center', lineBreak: false });
+  doc.fillColor(MID_GREEN).fontSize(8).font('Helvetica-Bold')
+     .text('WasteWise Platform', 80, SIG_Y + 61, { width: 160, align: 'center', lineBreak: false });
+
+  // Right signature block - date box (no image, styled box instead)
+  doc.rect(PAGE_W - 240, SIG_Y, 160, 40).fill(IVORY);
+  doc.rect(PAGE_W - 240, SIG_Y, 160, 40).lineWidth(0.5).stroke(GOLD_LIGHT);
+  doc.fillColor(TEAL).fontSize(7.5).font('Helvetica-Bold')
+     .text('DATE OF ISSUE', PAGE_W - 240, SIG_Y + 9, { width: 160, align: 'center', lineBreak: false, characterSpacing: 0.5 });
+  doc.fillColor(MID_GREEN).fontSize(11).font('Helvetica-Bold')
+     .text(date, PAGE_W - 240, SIG_Y + 23, { width: 160, align: 'center', lineBreak: false });
+  doc.rect(PAGE_W - 240, SIG_Y + 44, 160, 0.8).fill('#374151');
+  doc.fillColor('#374151').fontSize(9).font('Helvetica')
+     .text('Official Certification', PAGE_W - 240, SIG_Y + 49, { width: 160, align: 'center', lineBreak: false });
+  doc.fillColor(MID_GREEN).fontSize(8).font('Helvetica-Bold')
+     .text('WasteWise Platform', PAGE_W - 240, SIG_Y + 61, { width: 160, align: 'center', lineBreak: false });
+
+  // ─── Bottom footer area (Simplified) ──────────────────────────
+  const FOOTER_Y = PAGE_H - 120; // Pushed down slightly
+
+  // Blockchain hash row (centered)
+  doc.fillColor(MID_GREEN).fontSize(7).font('Helvetica-Bold')
+     .text('BLOCKCHAIN VERIFICATION HASH', 0, FOOTER_Y + 12, { width: PAGE_W, align: 'center', lineBreak: false, characterSpacing: 0.8 });
+  doc.fillColor('#4b5563').fontSize(6.5).font('Courier')
+     .text(hash, 0, FOOTER_Y + 24, { width: PAGE_W, align: 'center', lineBreak: false });
+
+  doc.fillColor('#6b7280').fontSize(7).font('Helvetica')
+     .text(
+       'This certificate is a digital record of sustainability verified by the WasteWise circular economy protocol. ' +
+       'It is legally binding between the participating parties as a record of environmental compliance.',
+       52, FOOTER_Y + 42, { width: PAGE_W - 124, align: 'center' }
+     );
 };
 
 // @desc    Confirm receipt of waste and generate Green Certificate
