@@ -4,9 +4,10 @@ import AuctionCard from '../components/AuctionCard.jsx';
 import { useAuth } from '../context/AuthContext';
 import BidModal from '../components/BidModal.jsx';
 import PaymentModal from '../components/PaymentModal.jsx';
-import { Package, TrendingUp, DollarSign, CloudRain, Star, Truck, CheckCircle, FileSignature } from 'lucide-react';
+import { Package, TrendingUp, DollarSign, CloudRain, Star, Truck, CheckCircle, FileSignature, Info } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { getOptimizedUrl } from '../services/cloudinaryService';
+import DeliveryDetailsModal from '../components/DeliveryDetailsModal.jsx';
 
 export default function BuyerDashboard() {
   const { user } = useAuth();
@@ -17,6 +18,7 @@ export default function BuyerDashboard() {
   const [paymentListingId, setPaymentListingId] = useState(null);
   const [myBids, setMyBids] = useState({ active: [], participated: [], won: [], pending: [] });
   const [pendingDeliveries, setPendingDeliveries] = useState([]);
+  const [selectedDelivery, setSelectedDelivery] = useState(null);
 
   const formatDeadline = (endTime) => {
     if (!endTime) return "Ends Soon";
@@ -165,8 +167,6 @@ export default function BuyerDashboard() {
   };
 
   const handleConfirmReceipt = async (listingId) => {
-    if (!window.confirm("Confirm receipt of this material? This will finalize the trade agreement and generate the Green Certificate.")) return;
-    
     try {
       const response = await fetch(`http://localhost:5000/api/listings/${listingId}/confirm-receipt`, {
         method: 'POST',
@@ -177,14 +177,12 @@ export default function BuyerDashboard() {
       });
       const data = await response.json();
       if (response.ok) {
-        alert('Receipt confirmed! The Green Certificate has been generated and emailed to the seller.');
         fetchMyBids();
       } else {
-        alert(data.message || 'Failed to confirm receipt');
+        console.error('Failed to confirm receipt:', data.message);
       }
     } catch (error) {
       console.error("Confirm receipt error:", error);
-      alert('An error occurred while confirming receipt.');
     }
   };
 
@@ -322,10 +320,10 @@ export default function BuyerDashboard() {
                </h2>
                <p className="text-xs text-industrial-400 mb-6">Confirm receipt of bulk waste from factories to finalize agreements and trigger Green Certificates.</p>
                
-               <div className="space-y-4">
+               <div className="space-y-4 max-h-[440px] overflow-y-auto pr-2 custom-scrollbar">
                   {pendingDeliveries.length > 0 ? (
                      pendingDeliveries.map(listing => (
-                        <div key={listing.id} className="p-4 rounded-xl border border-blue-500/20 bg-blue-500/5">
+                        <div key={listing.id} className="p-4 rounded-xl border border-blue-500/20 bg-blue-500/5 hover:bg-blue-500/10 transition-colors group">
                            <div className="flex justify-between items-start mb-3">
                               <div className="min-w-0">
                                  <h4 className="font-bold text-white truncate">{listing.title}</h4>
@@ -334,10 +332,10 @@ export default function BuyerDashboard() {
                               <span className="text-xs font-bold text-blue-400 bg-blue-500/10 px-2 py-1 rounded-md border border-blue-500/20 shrink-0">In Transit</span>
                            </div>
                            <button 
-                              onClick={() => handleConfirmReceipt(listing.id)}
-                              className="w-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold py-2.5 rounded-lg transition-colors flex items-center justify-center gap-2 shadow-md shadow-blue-500/20"
+                              onClick={() => setSelectedDelivery(listing)}
+                              className="w-full bg-blue-600/20 hover:bg-blue-600 text-blue-400 hover:text-white text-sm font-bold py-2.5 rounded-lg transition-all flex items-center justify-center gap-2 border border-blue-500/30 group-hover:border-blue-500/50 shadow-md"
                            >
-                              <CheckCircle size={16} /> Confirm Receipt
+                              <Info size={16} /> View Details
                            </button>
                         </div>
                      ))
@@ -399,6 +397,13 @@ export default function BuyerDashboard() {
            }}
         />
       )}
+
+      <DeliveryDetailsModal 
+        isOpen={!!selectedDelivery}
+        onClose={() => setSelectedDelivery(null)}
+        delivery={selectedDelivery}
+        onConfirmReceipt={handleConfirmReceipt}
+      />
     </div>
   );
 }
