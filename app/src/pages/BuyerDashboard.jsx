@@ -10,6 +10,7 @@ import { getOptimizedUrl } from '../services/cloudinaryService';
 import DeliveryDetailsModal from '../components/DeliveryDetailsModal.jsx';
 import ContractNegotiation from '../components/ContractNegotiation.jsx';
 import ProposeContractModal from '../components/ProposeContractModal.jsx';
+import StatCard from '../components/StatCard.jsx';
 
 export default function BuyerDashboard() {
   const { user } = useAuth();
@@ -27,6 +28,7 @@ export default function BuyerDashboard() {
   const [myBids, setMyBids] = useState({ active: [], participated: [], won: [], pending: [], paid: [] });
   const [auctionSlas, setAuctionSlas] = useState([]);
   const [showProposeModal, setShowProposeModal] = useState(false);
+  const [buyerStats, setBuyerStats] = useState({ totalWeightTonnes: 0, totalBids: 0, totalContracts: 0, totalExpenditure: 0, co2OffsetKg: 0 });
 
   const formatDeadline = (endTime) => {
     if (!endTime) return "Ends Soon";
@@ -80,6 +82,7 @@ export default function BuyerDashboard() {
             condition: listing.condition,
             location: listing.location,
             sellerName: listing.sellerId?.name || 'Verified Source',
+            sellerPhoto: listing.sellerId?.profilePhoto,
             image: listing.imageUrl ? getOptimizedUrl(listing.imageUrl) : getMaterialImage(listing.wasteType),
             realBids: listing.bids,
             startingBid: listing.startingBid,
@@ -111,6 +114,31 @@ export default function BuyerDashboard() {
 
         setMyBids({ active, participated, won, pending, paid });
         setPendingDeliveries(deliveries);
+
+        // Compute buyer stats from completed/paid won bids
+        const completedWon = formattedItems.filter(item =>
+          ['sold', 'paid', 'completed'].includes(item.status) &&
+          (() => {
+            if (!item.realBids || item.realBids.length === 0) return false;
+            const highestBid = item.realBids.reduce((prev, current) => (prev.amount > current.amount) ? prev : current);
+            const winnerId = highestBid.userId?._id || highestBid.userId;
+            return winnerId === user?.id;
+          })()
+        );
+        const totalWeightKg = completedWon.reduce((sum, item) => {
+          const kg = parseFloat((item.weight || '0').toString().replace(/[^0-9.]/g, ''));
+          return sum + (isNaN(kg) ? 0 : kg);
+        }, 0);
+        const totalExpenditure = completedWon.reduce((sum, item) => sum + (item.rawHighestBid || 0), 0);
+        const totalBids = formattedItems.length;
+        const co2OffsetKg = totalWeightKg * 15.6;
+        setBuyerStats(prev => ({
+          ...prev,
+          totalWeightTonnes: totalWeightKg / 1000,
+          totalBids: totalBids,
+          totalExpenditure,
+          co2OffsetKg
+        }));
       }
     } catch (error) {
       console.error("Failed to fetch bids:", error);
@@ -142,8 +170,17 @@ export default function BuyerDashboard() {
   useEffect(() => {
     if (user?.id && myBids.paid) {
       fetchContractsAndSLAs();
+      // Update contract count in stats once contracts are loaded
     }
   }, [user, myBids.paid]);
+
+  // Update bids+contracts stat after contracts load
+  useEffect(() => {
+    setBuyerStats(prev => ({
+      ...prev,
+      totalContracts: contracts?.length || 0
+    }));
+  }, [contracts]);
 
   const handlePlaceBid = async (amount) => {
     try {
@@ -238,32 +275,54 @@ export default function BuyerDashboard() {
         </div>
       </div>
 
-      {/* Top Statistics */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          <div className="bg-industrial-900 p-6 rounded-xl shadow-lg border border-industrial-800">
-             <div className="flex items-center gap-3 mb-2 text-nature-500">
-               <Package size={20} /> <span className="font-bold text-sm">Bulk Waste Procured</span>
-             </div>
-             <div className="text-3xl font-bold text-white">12.5 <span className="text-lg text-industrial-500 font-medium">Tonnes</span></div>
-          </div>
-          <div className="bg-industrial-900 p-6 rounded-xl shadow-lg border border-industrial-800">
-             <div className="flex items-center gap-3 mb-2 text-orange-500">
-               <TrendingUp size={20} /> <span className="font-bold text-sm">Bids / Contracts</span>
-             </div>
-             <div className="text-3xl font-bold text-white">14</div>
-          </div>
-          <div className="bg-industrial-900 p-6 rounded-xl shadow-lg border border-industrial-800">
-             <div className="flex items-center gap-3 mb-2 text-blue-500">
-               <DollarSign size={20} /> <span className="font-bold text-sm">Total Expenditure</span>
-             </div>
-             <div className="text-3xl font-bold text-white">1.8M <span className="text-lg text-industrial-500 font-medium">LKR</span></div>
-          </div>
-          <div className="bg-industrial-900 p-6 rounded-xl shadow-lg border border-nature-500/30 text-center relative overflow-hidden group">
-             <div className="absolute inset-0 bg-nature-500/5 group-hover:bg-nature-500/10 transition-colors"></div>
-             <CloudRain size={24} className="text-nature-500 mx-auto mb-2 relative z-10" />
-             <div className="text-2xl font-bold text-white relative z-10">4,250 <span className="text-sm text-nature-400 font-medium">kg CO₂</span></div>
-             <p className="text-xs font-bold text-industrial-400 mt-1 relative z-10">Emissions Offset Aided</p>
-          </div>
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-5">
+        <StatCard 
+          index={0}
+          icon={Package}
+          label="Bulk Waste Procured"
+          value={buyerStats.totalWeightTonnes < 1
+            ? `${(buyerStats.totalWeightTonnes * 1000).toFixed(0)} kg`
+            : `${buyerStats.totalWeightTonnes.toFixed(2)} Tonnes`}
+          color="nature"
+        />
+
+        <StatCard 
+          index={1}
+          icon={TrendingUp}
+          label="Auction Bids"
+          value={buyerStats.totalBids}
+          subValue="Total participated"
+          color="orange"
+        />
+
+        <StatCard 
+          index={2}
+          icon={FileSignature}
+          label="Contracts"
+          value={buyerStats.totalContracts}
+          subValue="Long-term SLAs"
+          color="purple"
+        />
+
+        <StatCard 
+          index={3}
+          icon={DollarSign}
+          label="Total Expenditure"
+          value={buyerStats.totalExpenditure >= 1_000_000
+            ? `${(buyerStats.totalExpenditure / 1_000_000).toFixed(1)}M LKR`
+            : buyerStats.totalExpenditure >= 1_000
+            ? `${(buyerStats.totalExpenditure / 1_000).toFixed(1)}K LKR`
+            : `${buyerStats.totalExpenditure.toLocaleString()} LKR`}
+          color="blue"
+        />
+
+        <StatCard 
+          index={4}
+          icon={CloudRain}
+          label="Emissions Offset Aided"
+          value={`${buyerStats.co2OffsetKg.toLocaleString(undefined, { maximumFractionDigits: 0 })} kg CO₂`}
+          color="nature"
+        />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">

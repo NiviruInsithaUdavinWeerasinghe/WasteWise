@@ -81,8 +81,8 @@ const createListing = async (req, res) => {
 const getAllActiveListings = async (req, res) => {
   try {
     const listings = await Listing.find({ status: 'active' })
-      .populate('sellerId', 'name email role')
-      .populate('bids.userId', 'name email');
+      .populate('sellerId', 'name email role profilePhoto')
+      .populate('bids.userId', 'name email profilePhoto');
     res.status(200).json(listings);
   } catch (error) {
     console.error(error);
@@ -97,13 +97,34 @@ const getSellerListings = async (req, res) => {
   try {
     const sellerId = req.params.id;
     const listings = await Listing.find({ sellerId })
-      .populate('bids.userId', 'name email')
+      .populate('sellerId', 'name email role profilePhoto')
+      .populate('bids.userId', 'name email profilePhoto')
       .sort({ createdAt: -1 });
 
     res.status(200).json(listings);
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Server error fetching seller listings' });
+  }
+};
+
+// @desc    Get a single listing by ID
+// @route   GET /api/listings/:id
+// @access  Public
+const getListingById = async (req, res) => {
+  try {
+    const listing = await Listing.findById(req.params.id)
+      .populate('sellerId', 'name email role profilePhoto')
+      .populate('bids.userId', 'name profilePhoto');
+
+    if (!listing) {
+      return res.status(404).json({ message: 'Listing not found' });
+    }
+
+    res.status(200).json(listing);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error fetching listing' });
   }
 };
 
@@ -114,8 +135,8 @@ const getBuyerBids = async (req, res) => {
   try {
     const userId = req.user.id;
     const listings = await Listing.find({ 'bids.userId': userId })
-      .populate('sellerId', 'name email role')
-      .populate('bids.userId', 'name email')
+      .populate('sellerId', 'name email role profilePhoto')
+      .populate('bids.userId', 'name email profilePhoto')
       .sort({ createdAt: -1 });
 
     res.status(200).json(listings);
@@ -320,8 +341,8 @@ const getFailedTransactions = async (req, res) => {
       return res.status(403).json({ message: 'Access denied. Admins only.' });
     }
     const listings = await Listing.find({ status: 'failed_payment' })
-      .populate('sellerId', 'name email role')
-      .populate('bids.userId', 'name email role');
+      .populate('sellerId', 'name email role profilePhoto')
+      .populate('bids.userId', 'name email role profilePhoto');
     res.status(200).json(listings);
   } catch (error) {
     console.error(error);
@@ -672,6 +693,9 @@ const confirmReceipt = async (req, res) => {
 const getCertificate = async (req, res) => {
   try {
     const listingId = req.params.id;
+    if (!listingId || listingId === 'undefined') {
+      return res.status(400).json({ message: 'Valid Listing ID is required' });
+    }
     const listing = await Listing.findById(listingId).populate('sellerId', 'name');
 
     if (!listing || listing.status !== 'completed') {
@@ -834,7 +858,12 @@ const drawAgreement = (doc, data) => {
 // @access  Private
 const downloadAgreement = async (req, res) => {
   try {
-    const { listingId } = req.params;
+    let { listingId } = req.params;
+
+    // Handle cases where listingId might be 'undefined' or a malformed string if passed from a bad client state
+    if (!listingId || listingId === 'undefined') {
+      return res.status(400).json({ message: 'Valid Listing ID is required' });
+    }
 
     // Find agreement and populate necessary fields
     const agreement = await Agreement.findOne({ listingId })
@@ -888,6 +917,7 @@ const downloadAgreement = async (req, res) => {
 module.exports = {
   createListing,
   getAllActiveListings,
+  getListingById,
   getSellerListings,
   getBuyerBids,
   placeBid,

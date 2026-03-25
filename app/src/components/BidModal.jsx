@@ -8,24 +8,53 @@ export default function BidModal({ isOpen, onClose, item, onPlaceBid }) {
   const [amount, setAmount] = useState('');
   const [isSuccess, setIsSuccess] = useState(false);
   const [liveBids, setLiveBids] = useState([]);
+  const [sellerPhoto, setSellerPhoto] = useState(item.sellerPhoto || '');
   const { user } = useAuth();
   const scrollRef = useRef(null);
 
+  const formatBids = (rawBids) => {
+    if (!rawBids || !Array.isArray(rawBids)) return [];
+    return rawBids.map((b, i) => ({
+      id: b._id || `real-${i}`,
+      name: b.userId?.name || 'Bidder',
+      profilePhoto: b.userId?.profilePhoto,
+      amount: b.amount,
+      time: new Date(b.timestamp || b.createdAt || new Date()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    })).reverse();
+  };
+
+  const fetchBids = async () => {
+    try {
+      const listingId = item.id || item._id;
+      if (!listingId) return;
+
+      const response = await fetch(`http://localhost:5000/api/listings/${listingId}`);
+      if (response.ok) {
+        const data = await response.json();
+        if (data.bids) {
+          setLiveBids(formatBids(data.bids));
+        }
+        if (data.sellerId?.profilePhoto) {
+          setSellerPhoto(data.sellerId.profilePhoto);
+        }
+      }
+    } catch (e) {
+      console.error('Failed to poll bids', e);
+    }
+  };
+
   useEffect(() => {
     if (isOpen && item) {
-       if (item.realBids && item.realBids.length > 0) {
-           const formattedReal = item.realBids.map((b, i) => ({
-              id: `real-${i}`,
-              name: b.userId?.name || `Bidder #${String(b.userId).slice(-4)}`,
-              amount: b.amount,
-              time: new Date(b.timestamp || b.createdAt || new Date()).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})
-           })).reverse();
-           setLiveBids(formattedReal);
-       } else {
-           setLiveBids([]);
-       }
+      // Prioritize initializing with existing bids if provided
+      if (item.realBids && liveBids.length === 0) {
+        setLiveBids(formatBids(item.realBids));
+      }
+      
+      fetchBids();
+      const interval = setInterval(fetchBids, 5000); // Poll every 5 seconds
+      return () => clearInterval(interval);
     }
-  }, [isOpen, item]);
+  }, [isOpen, item.id, item._id]);
 
   useEffect(() => {
      if (scrollRef.current) {
@@ -56,7 +85,6 @@ export default function BidModal({ isOpen, onClose, item, onPlaceBid }) {
       setTimeout(() => {
         setIsSuccess(false);
         setAmount('');
-        onClose();
       }, 2000);
     } catch(error) {
        console.error("Bid placing halted:", error);
@@ -155,8 +183,12 @@ export default function BidModal({ isOpen, onClose, item, onPlaceBid }) {
 
                     {/* Seller Banner */}
                     <div className="flex items-center gap-4 p-4 rounded-xl border border-industrial-800 bg-industrial-900/50">
-                       <div className="w-12 h-12 rounded-full bg-industrial-800 flex items-center justify-center border border-industrial-700 shrink-0">
-                          <User size={24} className="text-industrial-500" />
+                       <div className="w-12 h-12 rounded-full bg-industrial-800 flex items-center justify-center border border-industrial-700 shrink-0 overflow-hidden">
+                          {sellerPhoto ? (
+                             <img src={sellerPhoto} alt={item.sellerName} className="w-full h-full object-cover" />
+                          ) : (
+                             <User size={24} className="text-industrial-500" />
+                          )}
                        </div>
                        <div className="flex-1">
                           <h4 className="text-white font-bold text-sm flex items-center gap-2">
@@ -181,13 +213,29 @@ export default function BidModal({ isOpen, onClose, item, onPlaceBid }) {
                        </span>
                        <span className="text-industrial-400 text-xs font-medium">{liveBids.length} Bids Placed</span>
                     </div>
-                    <div>
-                       <p className="text-industrial-400 text-sm font-medium mb-1">Current Highest Bid</p>
-                       <p className="text-3xl md:text-4xl font-black text-white tracking-tight">
-                         {item.rawHighestBid 
-                           ? <>{Number(item.rawHighestBid).toLocaleString()} <span className="text-xl text-nature-500">LKR</span></> 
-                           : <>{item.currentBid?.replace('LKR', '') || '0'} <span className="text-xl text-nature-500">LKR</span></>}
-                       </p>
+                    <div className="flex justify-between items-end">
+                       <div>
+                          <p className="text-industrial-400 text-sm font-medium mb-1">
+                            {item.isClosed ? (liveBids.length > 0 ? "Winning Bid" : "Final Price") : "Current Highest Bid"}
+                          </p>
+                          <p className="text-3xl md:text-4xl font-black text-white tracking-tight">
+                            {item.rawHighestBid 
+                              ? <>{Number(item.rawHighestBid).toLocaleString()} <span className="text-xl text-nature-500">LKR</span></> 
+                              : <>{item.currentBid?.replace('LKR', '') || '0'} <span className="text-xl text-nature-500">LKR</span></>}
+                          </p>
+                       </div>
+                       <div className="text-right pb-1">
+                          <div className="flex flex-col gap-1">
+                             <div className="flex items-center justify-end gap-2">
+                                <span className="text-[10px] text-industrial-500 uppercase font-bold tracking-wider">Starting:</span>
+                                <span className="text-xs text-industrial-300 font-mono font-bold">{(item.startingBid || 0).toLocaleString()} LKR</span>
+                             </div>
+                             <div className="flex items-center justify-end gap-2">
+                                <span className="text-[10px] text-industrial-500 uppercase font-bold tracking-wider">Min Inr:</span>
+                                <span className="text-xs text-nature-500 font-mono font-bold">+{(item.minBidIncrease || 0).toLocaleString()} LKR</span>
+                             </div>
+                          </div>
+                       </div>
                     </div>
                  </div>
 
@@ -204,8 +252,12 @@ export default function BidModal({ isOpen, onClose, item, onPlaceBid }) {
                              className={`flex justify-between items-center p-3 rounded-lg border ${i === 0 ? 'bg-nature-500/5 border-nature-500/30' : 'bg-industrial-950 border-industrial-800'}`}
                           >
                              <div className="flex items-center gap-3">
-                                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${b.isYou ? 'bg-blue-500 text-white' : i === 0 ? 'bg-nature-500 text-white shadow-[0_0_10px_rgba(34,197,94,0.5)]' : 'bg-industrial-800 text-industrial-400'}`}>
-                                   {b.isYou ? 'You' : b.name.charAt(0)}
+                                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold overflow-hidden ${b.isYou ? 'bg-blue-500 text-white' : i === 0 ? 'bg-nature-500 text-white shadow-[0_0_10px_rgba(34,197,94,0.5)]' : 'bg-industrial-800 text-industrial-400'}`}>
+                                   {b.profilePhoto ? (
+                                      <img src={b.profilePhoto} alt={b.name} className="w-full h-full object-cover" />
+                                   ) : (
+                                      b.isYou ? 'You' : b.name.charAt(0)
+                                   )}
                                 </div>
                                 <div>
                                    <p className={`text-sm font-bold ${b.isYou ? 'text-blue-400' : i === 0 ? 'text-nature-400' : 'text-white'}`}>{b.name}</p>

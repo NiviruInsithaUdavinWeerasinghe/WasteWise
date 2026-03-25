@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import DashboardChart from '../components/DashboardChart.jsx';
 import HistoryTable from '../components/HistoryTable.jsx';
-import { Upload, Leaf, DollarSign, AlertTriangle, FileSignature } from 'lucide-react';
+import { Upload, Leaf, DollarSign, AlertTriangle, FileSignature, CloudRain } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import ContractNegotiation from '../components/ContractNegotiation.jsx';
 import ProposeContractModal from '../components/ProposeContractModal.jsx';
+import StatCard from '../components/StatCard.jsx';
 
 export default function SellerDashboard({ onOpenUpload }) {
   const { user } = useAuth();
@@ -48,7 +49,7 @@ export default function SellerDashboard({ onOpenUpload }) {
               finalPrice = Math.max(...listing.bids.map(b => b.amount));
             }
 
-            if (listing.status === 'sold' || listing.status === 'paid') {
+            if (['sold', 'paid', 'completed'].includes(listing.status)) {
               weight += listing.weight || 0;
               rev += finalPrice;
             } else if (listing.status === 'active') {
@@ -63,7 +64,8 @@ export default function SellerDashboard({ onOpenUpload }) {
             totalWeight: weight,
             revenue: rev,
             activeListings: active,
-            awaitingPayment: awaiting
+            awaitingPayment: awaiting,
+            carbonSaved: weight * 15.6
           });
         }
       } catch (error) {
@@ -93,6 +95,44 @@ export default function SellerDashboard({ onOpenUpload }) {
       fetchContractsAndSLAs();
     }
   }, [user, rawListings]);
+
+  const chartData = useMemo(() => {
+    const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const last7Days = [];
+    
+    // Generate last 7 days template
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      last7Days.push({
+        dateStr: d.toDateString(),
+        label: i === 0 ? 'Today' : days[d.getDay()],
+        waste: 0,
+        revenue: 0
+      });
+    }
+
+    // Populate with real listing data
+    rawListings.forEach(listing => {
+      const createdDate = new Date(listing.createdAt).toDateString();
+      const dayEntry = last7Days.find(d => d.dateStr === createdDate);
+      
+      if (dayEntry) {
+        dayEntry.waste += listing.weight || 0;
+        
+        let finalPrice = listing.price || listing.startingBid || 0;
+        if (listing.sellingMethod === 'auction' && listing.bids && listing.bids.length > 0) {
+          finalPrice = Math.max(...listing.bids.map(b => b.amount));
+        }
+        
+        if (['sold', 'paid', 'completed', 'pending_payment'].includes(listing.status)) {
+           dayEntry.revenue += finalPrice;
+        }
+      }
+    });
+
+    return last7Days;
+  }, [rawListings]);
 
   return (
     <div className="space-y-6">
@@ -126,49 +166,81 @@ export default function SellerDashboard({ onOpenUpload }) {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <div className="bg-industrial-900 p-6 rounded-xl shadow-lg border border-industrial-800">
-           <div className="flex items-center gap-3 mb-2 text-nature-500">
-             <Leaf size={20} /> <span className="font-bold text-sm">Waste Diverted</span>
-           </div>
-           <div className="text-3xl font-bold text-white">{stats.totalWeight.toLocaleString()} kg</div>
-           <div className="text-xs text-industrial-500 mt-1">Total completed</div>
-        </div>
-        <div className="bg-industrial-900 p-6 rounded-xl shadow-lg border border-industrial-800">
-           <div className="flex items-center gap-3 mb-2 text-blue-500">
-             <DollarSign size={20} /> <span className="font-bold text-sm">Revenue Generated</span>
-           </div>
-           <div className="text-3xl font-bold text-white">Rs {(stats.revenue).toLocaleString()}</div>
-        </div>
-        <div className="bg-industrial-900 p-6 rounded-xl shadow-lg border border-industrial-800">
-           <div className="flex items-center gap-3 mb-2 text-yellow-500">
-             <DollarSign size={20} /> <span className="font-bold text-sm">Awaiting Payment</span>
-           </div>
-           <div className="text-3xl font-bold text-white">Rs {(stats.awaitingPayment || 0).toLocaleString()}</div>
-           <div className="text-xs text-yellow-500/80 mt-1">Expected net payout (-3%)</div>
-        </div>
-        <div className="bg-industrial-900 p-6 rounded-xl shadow-lg border border-industrial-800">
-           <div className="flex items-center gap-3 mb-2 text-orange-500">
-             <Upload size={20} /> <span className="font-bold text-sm">Active Listings</span>
-           </div>
-           <div className="text-3xl font-bold text-white">{stats.activeListings}</div>
-        </div>
+        <StatCard 
+          index={0}
+          isSplit={true}
+          icon={Leaf}
+          label="Waste Diverted"
+          value={stats.totalWeight.toLocaleString()}
+          subValue="Total completed"
+          color="nature"
+          secondHalf={{
+            icon: CloudRain,
+            label: "Carbon Emissions Saved",
+            value: (stats.carbonSaved || 0) >= 1000
+              ? `${((stats.carbonSaved || 0) / 1000).toFixed(2)} t`
+              : `${(stats.carbonSaved || 0).toFixed(1)} kg`
+          }}
+        />
+        
+        <StatCard 
+          index={1}
+          icon={DollarSign}
+          label="Revenue Generated"
+          value={`Rs ${stats.revenue.toLocaleString()}`}
+          color="blue"
+        />
+
+        <StatCard 
+          index={2}
+          icon={DollarSign}
+          label="Awaiting Payment"
+          value={`Rs ${(stats.awaitingPayment || 0).toLocaleString()}`}
+          subValue="Expected net payout (-3%)"
+          color="yellow"
+        />
+
+        <StatCard 
+          index={3}
+          icon={Upload}
+          label="Active Listings"
+          value={stats.activeListings}
+          color="orange"
+        />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-        <div className="lg:col-span-3 bg-industrial-900 rounded-xl border border-industrial-800 shadow-lg flex flex-col max-h-[500px]">
-           <div className="overflow-y-auto overflow-x-hidden custom-scrollbar flex-1 relative">
+        <div className="lg:col-span-3 bg-industrial-900 rounded-xl border border-industrial-800 shadow-lg flex flex-col self-start w-full">
+           <div className="overflow-y-auto overflow-x-hidden custom-scrollbar max-h-[500px]">
              <HistoryTable 
                role="seller" 
-               data={showAll ? rawListings : rawListings.slice(0, 2)} 
+               data={showAll ? rawListings : rawListings.slice(0, 5)} 
                title="Your Uploads" 
-               onViewAll={() => setShowAll(!showAll)}
+               onViewAll={null}
                isShowingAll={showAll}
                totalItems={rawListings.length}
              />
            </div>
+           {rawListings.length >= 3 && (
+             <div className="p-4 border-t border-industrial-800 bg-industrial-950/30 text-center shrink-0">
+               <button
+                 onClick={() => setShowAll(!showAll)}
+                 className="text-sm font-bold text-nature-500 hover:text-nature-400 transition-colors py-2 px-6 rounded-xl hover:bg-nature-500/10 active:scale-95"
+               >
+                 {showAll ? 'Show Less' : `View All Your Uploads \u2192`}
+               </button>
+             </div>
+           )}
         </div>
-        <div className="lg:col-span-2 flex flex-col space-y-6">
-           <DashboardChart title="Monthly Waste Trends" />
+         <div className="lg:col-span-2 flex flex-col space-y-6">
+            <DashboardChart 
+              title="Weekly Performance" 
+              data={chartData}
+              series1Name="Waste (kg)"
+              series2Name="Revenue (Rs)"
+              series1Key="waste"
+              series2Key="revenue"
+            />
            
            {/* Contracts & SLAs Section */}
             <div className="bg-industrial-900 p-6 rounded-xl shadow-lg border border-industrial-800">
