@@ -1,4 +1,5 @@
 const User = require('../models/User');
+const AuditLog = require('../models/AuditLog');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
 
@@ -60,6 +61,8 @@ const registerUser = async (req, res) => {
         email: user.email,
         role: user.role,
         isApproved: user.isApproved,
+        companyDetails: user.companyDetails,
+        profilePhoto: user.profilePhoto,
         token: generateToken(user._id),
       });
     } else {
@@ -85,6 +88,8 @@ const loginUser = async (req, res) => {
         email: user.email,
         role: user.role,
         isApproved: user.isApproved,
+        companyDetails: user.companyDetails,
+        profilePhoto: user.profilePhoto,
         token: generateToken(user._id),
       });
     } else {
@@ -96,7 +101,37 @@ const loginUser = async (req, res) => {
   }
 };
 
+const changePassword = async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    const user = await User.findById(req.user.id);
+
+    if (user && (await bcrypt.compare(currentPassword, user.password))) {
+      const salt = await bcrypt.genSalt(10);
+      user.password = await bcrypt.hash(newPassword, salt);
+      await user.save();
+
+      // Log the password change
+      await AuditLog.create({
+        userId: user._id,
+        action: 'Password Changed',
+        details: `${user.name} has successfully updated their account password.`,
+        type: 'account_update'
+      });
+
+      res.json({ message: 'Password changed successfully' });
+    } else {
+      res.status(401).json({ message: 'Invalid current password' });
+    }
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error changing password' });
+  }
+};
+
 module.exports = {
   registerUser,
   loginUser,
+  generateToken,
+  changePassword,
 };

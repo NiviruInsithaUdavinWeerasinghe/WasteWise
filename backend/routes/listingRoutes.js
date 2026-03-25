@@ -9,18 +9,18 @@ const {
   getBuyerBids,
   getFailedTransactions,
   confirmReceipt,
-  getCertificate
+  getCertificate,
+  getListingById
 } = require('../controllers/listingController');
-const { protect } = require('../middleware/authMiddleware');
+const { protect, admin } = require('../middleware/authMiddleware');
 
 // Route to get all active listings
 router.get('/', getAllActiveListings);
+router.get('/failed', protect, admin, getFailedTransactions);
+router.get('/:id', getListingById);
 
 // Route to get listings where the buyer has placed a bid
 router.get('/buyer/bids', protect, getBuyerBids);
-
-// Route to get all failed test payments (Admin)
-router.get('/failed', protect, getFailedTransactions);
 
 // Route to create a new listing (protected)
 router.post('/', protect, createListing);

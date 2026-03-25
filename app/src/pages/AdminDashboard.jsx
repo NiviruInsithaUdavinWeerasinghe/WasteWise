@@ -4,17 +4,23 @@ import HistoryTable from '../components/HistoryTable.jsx';
 import { Users, AlertTriangle, CheckCircle, Shield, Building2, MapPin, Mail, X } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
+import StatCard from '../components/StatCard.jsx';
 
 export default function AdminDashboard() {
   const [pendingSellers, setPendingSellers] = useState([]);
   const [selectedSeller, setSelectedSeller] = useState(null);
   const [failedTransactions, setFailedTransactions] = useState([]);
+  const [chartData, setChartData] = useState([]);
+  const [platformActivity, setPlatformActivity] = useState([]);
+  const [filterDate, setFilterDate] = useState(new Date().toISOString().split('T')[0]);
   const { user } = useAuth();
 
   useEffect(() => {
     fetchPendingSellers();
     fetchFailedTransactions();
-  }, [user]);
+    fetchAdminStats();
+    fetchPlatformActivity();
+  }, [user, filterDate]);
 
   const fetchFailedTransactions = async () => {
     if (!user?.token) return;
@@ -47,6 +53,34 @@ export default function AdminDashboard() {
     }
   };
 
+  const fetchAdminStats = async () => {
+    if (!user?.token) return;
+    try {
+      const response = await fetch('http://localhost:5000/api/auth/admin-stats', {
+        headers: { Authorization: `Bearer ${user.token}` }
+      });
+      if (response.ok) {
+        setChartData(await response.json());
+      }
+    } catch (error) {
+      console.error('Failed to fetch admin stats', error);
+    }
+  };
+
+  const fetchPlatformActivity = async () => {
+    if (!user?.token) return;
+    try {
+      const response = await fetch(`http://localhost:5000/api/auth/activity?date=${filterDate}`, {
+        headers: { Authorization: `Bearer ${user.token}` }
+      });
+      if (response.ok) {
+        setPlatformActivity(await response.json());
+      }
+    } catch (error) {
+      console.error('Failed to fetch platform activity', error);
+    }
+  };
+
   const handleApprove = async (id) => {
     try {
       const response = await fetch(`http://localhost:5000/api/auth/approve/${id}`, {
@@ -65,12 +99,6 @@ export default function AdminDashboard() {
     }
   };
 
-  const customStats = [
-    { label: 'Pending Approvals', val: pendingSellers.length, icon: AlertTriangle, color: 'text-orange-500', bg: 'bg-orange-500/10' },
-    { label: 'Total Verified Factories', val: '142', icon: Building2, color: 'text-blue-500', bg: 'bg-blue-500/10' },
-    { label: 'Total Users Active', val: '2,894', icon: Users, color: 'text-purple-500', bg: 'bg-purple-500/10' },
-    { label: 'Certificates Issued', val: '15,300+', icon: Shield, color: 'text-nature-400', bg: 'bg-nature-500/10' },
-  ];
 
   return (
     <div className="space-y-6">
@@ -84,22 +112,46 @@ export default function AdminDashboard() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {customStats.map((stat, i) => (
-          <div key={i} className="bg-industrial-900 p-6 rounded-2xl shadow-xl hover:shadow-2xl transition-all border border-industrial-800 flex items-center gap-4 group">
-            <div className={`p-4 rounded-xl ${stat.bg} ${stat.color} group-hover:scale-110 transition-transform`}>
-              <stat.icon size={28} />
-            </div>
-            <div>
-              <p className="text-industrial-400 text-xs font-bold uppercase tracking-wider">{stat.label}</p>
-              <h3 className="text-2xl font-black text-white mt-1">{stat.val}</h3>
-            </div>
-          </div>
-        ))}
+        <StatCard 
+          index={0}
+          icon={AlertTriangle}
+          label="Pending Approvals"
+          value={pendingSellers.length}
+          color="orange"
+        />
+        <StatCard 
+          index={1}
+          icon={Building2}
+          label="Verified Factories"
+          value="142"
+          color="blue"
+        />
+        <StatCard 
+          index={2}
+          icon={Users}
+          label="Total Users Active"
+          value="2,894"
+          color="purple"
+        />
+        <StatCard 
+          index={3}
+          icon={Shield}
+          label="Certificates Issued"
+          value="15,300+"
+          color="nature"
+        />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2">
-           <DashboardChart title="Platform Traffic & Transactions" />
+           <DashboardChart 
+             title="Platform Traffic & Transactions" 
+             data={chartData}
+             series1Name="Transactions"
+             series2Name="New Users"
+             series1Key="transactions"
+             series2Key="newUsers"
+           />
         </div>
         
         {/* Verification Queue Panel */}
@@ -186,10 +238,23 @@ export default function AdminDashboard() {
       </div>
 
       <div className="bg-industrial-900 rounded-2xl shadow-xl border border-industrial-800 p-6 overflow-hidden">
-         <h3 className="font-bold text-white mb-6 flex items-center gap-2">
-            <Users size={18} className="text-industrial-400" /> Recent Platform Activity
-         </h3>
-         <HistoryTable role="admin" />
+         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+            <h3 className="font-bold text-white flex items-center gap-2">
+               <Users size={18} className="text-industrial-400" /> Recent Platform Activity
+            </h3>
+            <div className="flex items-center gap-3 bg-industrial-950 px-4 py-2 rounded-xl border border-industrial-800">
+               <span className="text-xs font-bold text-industrial-500 uppercase tracking-wider">Filter By Date:</span>
+               <input 
+                 type="date" 
+                 value={filterDate}
+                 onChange={(e) => setFilterDate(e.target.value)}
+                 className="bg-transparent border-none text-white text-sm font-bold focus:outline-none cursor-pointer"
+               />
+            </div>
+         </div>
+         <div className="h-[500px] overflow-y-auto pr-2 custom-scrollbar">
+            <HistoryTable role="admin" data={platformActivity} />
+         </div>
       </div>
 
       {/* Seller Details Popup Modal */}

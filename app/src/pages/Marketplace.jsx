@@ -62,6 +62,7 @@ export default function Marketplace() {
             condition: listing.condition,
             location: listing.location,
             sellerName: listing.sellerId?.name || 'Verified Source',
+            sellerPhoto: listing.sellerId?.profilePhoto,
             image: listing.imageUrl ? getOptimizedUrl(listing.imageUrl) : getMaterialImage(listing.wasteType),
             sellingMethod: listing.sellingMethod,
             sellerId: listing.sellerId?._id || listing.sellerId,

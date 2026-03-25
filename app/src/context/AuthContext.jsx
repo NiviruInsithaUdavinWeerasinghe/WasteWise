@@ -40,6 +40,8 @@ export function AuthProvider({ children }) {
           role: data.role,
           token: data.token,
           isApproved: data.isApproved,
+          profilePhoto: data.profilePhoto,
+          companyDetails: data.companyDetails,
           // Optional: Add company name logic based on role if needed
           companyName: data.role.includes('company') ? `${data.name} Corp` : undefined
         };
@@ -75,6 +77,8 @@ export function AuthProvider({ children }) {
           role: data.role,
           token: data.token,
           isApproved: data.isApproved,
+          profilePhoto: data.profilePhoto,
+          companyDetails: data.companyDetails,
           companyName: data.role.includes('company') ? `${data.name} Corp` : undefined
         };
         setUser(userData);
@@ -94,10 +98,17 @@ export function AuthProvider({ children }) {
     localStorage.removeItem('wiseWasteUser');
   };
 
+  const updateUser = (newData) => {
+    const updatedUser = { ...user, ...newData };
+    setUser(updatedUser);
+    localStorage.setItem('wiseWasteUser', JSON.stringify(updatedUser));
+  };
+
   const value = {
     user,
     login,
     register,
+    updateUser,
     logout,
     loading
   };

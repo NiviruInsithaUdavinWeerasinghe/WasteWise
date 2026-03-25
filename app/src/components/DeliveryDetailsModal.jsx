@@ -39,7 +39,7 @@ export default function DeliveryDetailsModal({ isOpen, onClose, delivery, onConf
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            className="relative z-50 w-full max-w-2xl bg-industrial-900 border border-industrial-800 rounded-2xl shadow-2xl overflow-hidden"
+            className="relative z-50 w-full max-w-2xl bg-industrial-900 border border-industrial-800 rounded-2xl shadow-2xl overflow-y-auto max-h-[85vh]"
           >
             {/* Header Image */}
             <div className="relative h-48 sm:h-64 overflow-hidden">

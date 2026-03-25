@@ -1,6 +1,7 @@
 const cron = require('node-cron');
 const Listing = require('./models/Listing');
 const User = require('./models/User');
+const AuditLog = require('./models/AuditLog');
 const { sendNotification } = require('./controllers/notificationController');
 
 const startCronJobs = () => {
@@ -31,6 +32,14 @@ const startCronJobs = () => {
             `Congratulations! You won the auction for "${listing.wasteType}" with a bid of LKR ${winningBid.amount}. You have 48 hours to complete the payment via the Pending Payments tab in your dashboard.`,
             listing._id
           );
+
+          // Create AuditLog for the win
+          await AuditLog.create({
+            userId: winner._id,
+            action: 'Auction Won',
+            details: `${winner.name} won the auction for "${listing.wasteType}" at LKR ${winningBid.amount}.`,
+            type: 'transaction'
+          });
 
           // Notify Seller
           await sendNotification(

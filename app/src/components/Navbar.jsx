@@ -212,6 +212,17 @@ export default function Navbar({ toggleUpload, showUpload }) {
                       )}
                     </AnimatePresence>
                   </div>
+                  <button 
+                    onClick={() => navigate('/account')}
+                    className="p-2 text-industrial-400 hover:text-white hover:bg-industrial-800/50 rounded-full transition-all"
+                    title="Account Settings"
+                  >
+                    {user?.profilePhoto ? (
+                      <img src={user.profilePhoto} alt="Profile" className="w-6 h-6 rounded-full object-cover border border-industrial-700" />
+                    ) : (
+                      <User size={20} />
+                    )}
+                  </button>
                  {user.role === 'company-seller' && (
                     <button 
                         onClick={user.isApproved ? toggleUpload : null}

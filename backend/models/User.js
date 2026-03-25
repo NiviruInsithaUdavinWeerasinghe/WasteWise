@@ -27,6 +27,10 @@ const userSchema = new mongoose.Schema({
     brNumber: { type: String },
     address: { type: String }
   },
+  profilePhoto: {
+    type: String,
+    default: ""
+  },
   watchlist: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Listing'

@@ -133,12 +133,21 @@ export default function Home({ onOpenUpload }) {
               Connect directly with verified recyclers. Get AI-powered grading, fair pricing, and automated green compliance certificates in one platform.
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-              <a 
-                href="/dashboard"
-                className="w-full sm:w-auto px-8 py-4 bg-nature-600 hover:bg-nature-700 text-white rounded-xl font-semibold transition-all shadow-lg hover:shadow-nature-500/30 flex items-center justify-center gap-2"
-              >
-                Go to Dashboard <ArrowRight size={20} />
-              </a>
+              {user ? (
+                <a 
+                  href="/dashboard"
+                  className="w-full sm:w-auto px-8 py-4 bg-nature-600 hover:bg-nature-700 text-white rounded-xl font-semibold transition-all shadow-lg hover:shadow-nature-500/30 flex items-center justify-center gap-2"
+                >
+                  Go to Dashboard <ArrowRight size={20} />
+                </a>
+              ) : (
+                <a 
+                  href="/register"
+                  className="w-full sm:w-auto px-8 py-4 bg-nature-600 hover:bg-nature-700 text-white rounded-xl font-semibold transition-all shadow-lg hover:shadow-nature-500/30 flex items-center justify-center gap-2"
+                >
+                  Join Now <ArrowRight size={20} />
+                </a>
+              )}
               <a href="/marketplace" className="inline-flex items-center w-full sm:w-auto px-8 py-4 bg-white/10 hover:bg-white/20 text-white rounded-xl font-semibold backdrop-blur-md transition-all border border-white/10 justify-center">
                 Browse Marketplace
               </a>
