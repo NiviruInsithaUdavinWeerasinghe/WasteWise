@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import AuctionCard from '../components/AuctionCard';
 import BidModal from '../components/BidModal';
-import { Search, Filter, Loader } from 'lucide-react';
+import { Search, Loader } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import { getOptimizedUrl } from '../services/cloudinaryService';
 
@@ -119,48 +120,73 @@ export default function Marketplace() {
   );
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <div className="flex flex-col md:flex-row justify-between items-end mb-8 gap-4">
-        <div>
-           <h1 className="text-3xl font-bold text-white">Waste Marketplace</h1>
-           <p className="text-industrial-400">Live auctions and direct sales from certified factories.</p>
-        </div>
-        <div className="flex gap-2 w-full md:w-auto">
-           <div className="relative flex-1 md:w-64">
-              <input 
-                type="text" 
-                placeholder="Search materials..." 
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2.5 bg-industrial-900 border border-industrial-800 rounded-xl focus:ring-2 focus:ring-nature-500 outline-none text-white placeholder-industrial-500 shadow-inner"
-              />
-              <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-industrial-500" />
-           </div>
-           <button className="px-4 py-2.5 bg-industrial-900 border border-industrial-800 rounded-xl text-industrial-400 hover:bg-industrial-800 hover:text-white transition-colors shadow-sm">
-             <Filter size={20} />
-           </button>
-        </div>
-      </div>
+    <div className="min-h-screen bg-industrial-950 font-sans text-white selection:bg-nature-500/30 overflow-x-hidden relative">
+      {/* Texture & Glow Background Overlays */}
+      <div className="fixed inset-0 noise-overlay z-0" />
+      <div className="fixed inset-0 mesh-gradient-industrial z-0 opacity-40" />
 
-      {isLoading ? (
-        <div className="flex justify-center items-center py-20">
-          <Loader className="animate-spin text-nature-500" size={48} />
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 relative z-10 pt-20">
+        <div className="flex flex-col md:flex-row justify-between items-end mb-12 gap-6">
+          <motion.div 
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            className="space-y-2"
+          >
+             <h1 className="text-4xl font-bold text-white tracking-tight">Industrial Marketplace</h1>
+             <p className="text-industrial-400 text-lg">Live auctions and direct sales from certified factories.</p>
+          </motion.div>
+          
+          <motion.div 
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            className="flex gap-4 w-full md:w-auto"
+          >
+             <div className="relative flex-1 md:w-80">
+                <input 
+                  type="text" 
+                  placeholder="Search materials, locations, types..." 
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full pl-12 pr-4 py-4 glass-industrial rounded-2xl focus:ring-2 focus:ring-nature-500 outline-none text-white placeholder-industrial-500 transition-all"
+                />
+                <Search size={20} className="absolute left-4 top-1/2 -translate-y-1/2 text-industrial-500" />
+             </div>
+          </motion.div>
         </div>
-      ) : filteredItems.length === 0 ? (
-        <div className="text-center py-20 text-industrial-400 bg-industrial-900/50 rounded-2xl border border-industrial-800 shadow-inner">
-           No active listings found.
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6">
-          {filteredItems.map(item => (
-            <AuctionCard 
-               key={item.id} 
-               {...item} 
-               onBid={() => setSelectedBidItem(item)}
-            />
-          ))}
-        </div>
-      )}
+
+        {isLoading ? (
+          <div className="flex justify-center items-center py-20 relative z-10">
+            <Loader className="animate-spin text-nature-500" size={48} />
+          </div>
+        ) : filteredItems.length === 0 ? (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="text-center py-24 glass-industrial rounded-3xl relative z-10"
+          >
+             No active listings found in this sector.
+          </motion.div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 relative z-10 pb-20">
+            <AnimatePresence mode="popLayout">
+              {filteredItems.map((item, idx) => (
+                <motion.div 
+                   key={item.id}
+                   initial={{ opacity: 0, scale: 0.9 }}
+                   animate={{ opacity: 1, scale: 1 }}
+                   exit={{ opacity: 0, scale: 0.9 }}
+                   transition={{ delay: idx * 0.05 }}
+                >
+                  <AuctionCard 
+                     {...item} 
+                     onBid={() => setSelectedBidItem(item)}
+                  />
+                </motion.div>
+              ))}
+            </AnimatePresence>
+          </div>
+        )}
+      </div>
 
       {selectedBidItem && (
         <BidModal 

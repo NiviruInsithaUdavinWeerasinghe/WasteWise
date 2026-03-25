@@ -135,7 +135,7 @@ export default function SellerDashboard({ onOpenUpload }) {
   }, [rawListings]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {!user?.isApproved && (
          <div className="bg-orange-500/10 border border-orange-500/50 rounded-xl p-6 mb-6 flex items-start gap-4">
             <AlertTriangle className="text-orange-500 shrink-0 mt-1" size={24} />
@@ -209,8 +209,8 @@ export default function SellerDashboard({ onOpenUpload }) {
         />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-        <div className="lg:col-span-3 bg-industrial-900 rounded-xl border border-industrial-800 shadow-lg flex flex-col self-start w-full">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2 bg-industrial-900 rounded-xl border border-industrial-800 shadow-lg flex flex-col self-start w-full">
            <div className="overflow-y-auto overflow-x-hidden custom-scrollbar max-h-[500px]">
              <HistoryTable 
                role="seller" 
@@ -232,7 +232,7 @@ export default function SellerDashboard({ onOpenUpload }) {
              </div>
            )}
         </div>
-         <div className="lg:col-span-2 flex flex-col space-y-6">
+         <div className="lg:col-span-1 flex flex-col space-y-6">
             <DashboardChart 
               title="Weekly Performance" 
               data={chartData}

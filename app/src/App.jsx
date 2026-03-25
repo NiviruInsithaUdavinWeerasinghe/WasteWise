@@ -60,13 +60,17 @@ function AppContent() {
           <Route path="/" element={<Home onOpenUpload={() => setShowUpload(true)} />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
-          <Route path="/marketplace" element={<Marketplace />} />
+          <Route path="/marketplace" element={
+            <PrivateRoute allowedRoles={['admin', 'company-seller', 'company-buyer', 'individual']}>
+              <Marketplace />
+            </PrivateRoute>
+          } />
           <Route path="/notifications" element={<Notifications />} />
           <Route path="/account" element={<PrivateRoute><Account /></PrivateRoute>} />
 
           <Route path="/dashboard" element={
             <PrivateRoute>
-              <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+              <div className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-6 py-4">
                 <RoleBasedDashboard onOpenUpload={() => setShowUpload(true)} />
               </div>
             </PrivateRoute>

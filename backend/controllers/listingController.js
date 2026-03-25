@@ -30,6 +30,10 @@ const createListing = async (req, res) => {
     const userRole = req.user.role;
     const isApproved = req.user.isApproved;
 
+    if (userRole === 'deliveryman') {
+      return res.status(403).json({ message: 'Logistics accounts cannot create listings.' });
+    }
+
     if (userRole === 'company-seller' && !isApproved) {
       return res.status(403).json({ message: 'Your account is pending admin approval. You cannot create listings yet.' });
     }
@@ -159,9 +163,9 @@ const placeBid = async (req, res) => {
     const userId = req.user.id;
     const userRole = req.user.role;
 
-    // Block sellers from bidding
-    if (userRole === 'company-seller') {
-      return res.status(403).json({ message: 'Sellers are not allowed to place bids' });
+    // Block logistics and sellers from bidding
+    if (userRole === 'deliveryman' || userRole === 'company-seller') {
+      return res.status(403).json({ message: 'Your role is not authorized to place bids.' });
     }
 
     const listing = await Listing.findById(listingId);
@@ -249,8 +253,15 @@ const calculateDeliveryFee = async (req, res) => {
     if (response.data.status === 'OK' && response.data.rows[0].elements[0].status === 'OK') {
       const distanceValue = response.data.rows[0].elements[0].distance.value;
       const distanceKm = distanceValue / 1000;
-      const deliveryFee = (distanceKm * 50) + (listing.weight * 10);
-      return res.status(200).json({ deliveryFee });
+      const deliveryFee = 500 + (distanceKm * 15) + (listing.weight * 0.75);
+      return res.status(200).json({ 
+        deliveryFee, 
+        distanceKm: Number(distanceKm.toFixed(2)),
+        weight: listing.weight,
+        baseFee: 500,
+        distanceRate: 15,
+        weightRate: 0.75
+      });
     } else {
       if (response.data.error_message || response.data.status === 'REQUEST_DENIED') {
         return res.status(500).json({
@@ -343,7 +354,7 @@ const completePayment = async (req, res) => {
         if (response.data.status === 'OK' && response.data.rows[0].elements[0].status === 'OK') {
           const distanceValue = response.data.rows[0].elements[0].distance.value; // in meters
           const distanceKm = distanceValue / 1000;
-          deliveryFee = (distanceKm * 50) + (listing.weight * 10);
+          deliveryFee = 500 + (distanceKm * 15) + (listing.weight * 0.75);
         } else {
           console.error('Google Maps API Error:', response.data);
           // Standard fallback fee if API fails but we don't want to block the user entirely
@@ -409,6 +420,13 @@ const completePayment = async (req, res) => {
       totalAmount: totalWithDelivery,
       baseAmount: finalAmount,
       deliveryFee: deliveryFee,
+      deliveryDetails: {
+        distanceKm: typeof distanceKm !== 'undefined' ? Number(distanceKm.toFixed(2)) : 0,
+        weight: listing.weight,
+        baseFee: 500,
+        distanceRate: 15,
+        weightRate: 0.75
+      },
       platformFee: commission,
       sellerTransfer: sellerTransfer,
       status: listing.status
@@ -715,15 +733,34 @@ const confirmReceipt = async (req, res) => {
     const verificationData = `${listing._id}-${listing.sellerId._id}-${listing.weight}-${Date.now()}`;
     const hash = crypto.createHash('sha256').update(verificationData).digest('hex');
 
+    // Find Agreement to get Buyer Name and check delivery status
+    const agreement = await Agreement.findOne({ listingId: listing._id }).populate('buyerId', 'name email');
+    const buyerName = agreement?.buyerId?.name || 'Verified Buyer';
+
+    // 1. Mandatory Handshake Guard for Platform Logistics
+    if (agreement && agreement.pickupResponsibility === 'Platform Logistics') {
+      if (agreement.deliveryStatus !== 'qr_scanned') {
+        return res.status(400).json({ 
+          message: 'The deliveryman must scan your QR code before you can confirm receipt.' 
+        });
+      }
+    }
+
     // Update Listing
     listing.status = 'completed';
     listing.carbonSaved = CO2_SAVED;
     listing.verificationId = hash;
     await listing.save();
 
-    // Find Agreement to get Buyer Name
-    const agreement = await Agreement.findOne({ listingId: listing._id }).populate('buyerId', 'name email');
-    const buyerName = agreement?.buyerId?.name || 'Verified Buyer';
+    // 2. Mark Agreement as Delivered and clear Deliveryman
+    if (agreement && agreement.pickupResponsibility === 'Platform Logistics') {
+      agreement.deliveryStatus = 'delivered';
+      await agreement.save();
+
+      if (agreement.deliverymanId) {
+        await User.findByIdAndUpdate(agreement.deliverymanId, { currentDeliveryId: null });
+      }
+    }
 
     // Generate PDF in memory
     const doc = new PDFDocument({ margin: 0, size: 'LETTER' });
@@ -1007,7 +1044,7 @@ const getDeliveryStatus = async (req, res) => {
   try {
     const listingId = req.params.id;
     const agreement = await Agreement.findOne({ listingId })
-      .populate('deliverymanId', 'name profilePhoto');
+      .populate('deliverymanId', 'name profilePhoto email phoneNumber');
 
     if (!agreement) {
       return res.status(404).json({ message: 'No delivery info found for this listing' });
@@ -1034,6 +1071,45 @@ const getDeliveryStatus = async (req, res) => {
   }
 };
 
+const getPlatformStats = async (req, res) => {
+  try {
+    const totalFactories = await User.countDocuments({ role: 'company-seller' });
+    
+    // Total waste diverted (sum of weight for completed listings)
+    const divertedResult = await Listing.aggregate([
+      { $match: { status: 'completed' } },
+      { $group: { _id: null, totalWeight: { $sum: '$weight' } } }
+    ]);
+    const totalWasteDiverted = divertedResult.length > 0 ? divertedResult[0].totalWeight : 0;
+
+    // Total value generated (sum of price/bid for sold/paid/completed)
+    const valueResult = await Listing.aggregate([
+      { $match: { status: { $in: ['sold', 'paid', 'completed'] } } },
+      { $project: {
+          amount: { 
+            $cond: [
+              { $eq: ['$sellingMethod', 'direct'] }, 
+              '$price', 
+              { $ifNull: [{ $max: '$bids.amount' }, '$startingBid'] }
+            ] 
+          }
+      }},
+      { $group: { _id: null, totalValue: { $sum: '$amount' } } }
+    ]);
+    const totalValueGenerated = valueResult.length > 0 ? valueResult[0].totalValue : 0;
+
+    res.json({
+      totalFactories,
+      totalWasteDiverted,
+      totalValueGenerated,
+      complianceRate: 100
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error fetching platform stats' });
+  }
+};
+
 module.exports = {
   createListing,
   getAllActiveListings,
@@ -1047,5 +1123,6 @@ module.exports = {
   getCertificate,
   downloadAgreement,
   calculateDeliveryFee,
-  getDeliveryStatus
+  getDeliveryStatus,
+  getPlatformStats
 };

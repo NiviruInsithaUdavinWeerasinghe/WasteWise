@@ -12,12 +12,14 @@ const {
   getCertificate,
   getListingById,
   calculateDeliveryFee,
-  getDeliveryStatus
+  getDeliveryStatus,
+  getPlatformStats
 } = require('../controllers/listingController');
 const { protect, admin, approved } = require('../middleware/authMiddleware');
 
 // Route to get all active listings
 router.get('/', getAllActiveListings);
+router.get('/stats', getPlatformStats);
 router.get('/failed', protect, admin, getFailedTransactions);
 router.get('/:id', getListingById);
 

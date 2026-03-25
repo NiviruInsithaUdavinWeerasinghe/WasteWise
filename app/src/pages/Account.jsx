@@ -9,6 +9,7 @@ export default function Account() {
   const [name, setName] = useState(user?.name || '');
   const [profilePhoto, setProfilePhoto] = useState(user?.profilePhoto || '');
   const [address, setAddress] = useState(user?.companyDetails?.address || '');
+  const [phoneNumber, setPhoneNumber] = useState(user?.phoneNumber || '');
   const [isUploading, setIsUploading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isChangingPassword, setIsChangingPassword] = useState(false);
@@ -48,6 +49,7 @@ export default function Account() {
         body: JSON.stringify({
           name,
           profilePhoto,
+          phoneNumber,
           companyDetails: {
             address
           }
@@ -59,6 +61,7 @@ export default function Account() {
         const updatedFields = {
           name: data.name,
           profilePhoto: data.profilePhoto,
+          phoneNumber: data.phoneNumber,
           companyDetails: data.companyDetails
         };
         updateUser(updatedFields);
@@ -194,6 +197,19 @@ export default function Account() {
                   onChange={(e) => setAddress(e.target.value)}
                   className="w-full bg-industrial-950 border border-industrial-800 rounded-xl px-4 py-3 text-white focus:border-nature-500 outline-none transition-all shadow-inner"
                   placeholder="Street address, city, country"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-industrial-500 uppercase tracking-widest flex items-center gap-2">
+                  <span className="text-nature-500">📞</span> Contact Number
+                </label>
+                <input 
+                  type="text" 
+                  value={phoneNumber}
+                  onChange={(e) => setPhoneNumber(e.target.value)}
+                  className="w-full bg-industrial-950 border border-industrial-800 rounded-xl px-4 py-3 text-white focus:border-nature-500 outline-none transition-all shadow-inner"
+                  placeholder="e.g. +94 77 123 4567"
                 />
               </div>
 

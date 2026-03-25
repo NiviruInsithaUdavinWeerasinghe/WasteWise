@@ -93,10 +93,12 @@ const getUserNotifications = async (req, res) => {
       .limit(limit);
 
     const total = await Notification.countDocuments({ userId: req.user.id });
+    const unreadCount = await Notification.countDocuments({ userId: req.user.id, isRead: false });
 
     res.json({
       notifications,
       total,
+      unreadCount,
       page,
       pages: Math.ceil(total / limit)
     });

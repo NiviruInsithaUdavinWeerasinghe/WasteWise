@@ -23,7 +23,14 @@ export default function HistoryTable({ role, data = [], title = "Recent History"
     return 'https://images.unsplash.com/photo-1532996122724-e3c354a0b15b?auto=format&fit=crop&q=80&w=800';
   };
 
-  const getIcon = (type) => {
+  const getIcon = (type, status = '') => {
+    const s = (status || '').toLowerCase();
+    if (['completed', 'verified', 'received', 'approved'].includes(s)) return <CheckCircle size={16} className="text-nature-500" />;
+    if (['paid', 'payment'].includes(s)) return <ShoppingBag size={16} className="text-blue-500" />;
+    if (['failed', 'no bids', 'expired', 'closed', 'outbid'].includes(s)) return <XCircle size={16} className="text-red-500" />;
+    if (['pending payment', 'pending'].includes(s)) return <Clock size={16} className="text-yellow-500" />;
+    if (s === 'active') return <RefreshCw size={16} className="text-orange-500 animate-spin-slow" />;
+
     switch (type) {
       case 'Sale': 
       case 'Direct': return <ArrowUpRight size={16} className="text-nature-500" />;
@@ -49,8 +56,12 @@ export default function HistoryTable({ role, data = [], title = "Recent History"
       case 'Verified':
       case 'Won':
       case 'Received':
-      case 'Active':
         return 'bg-nature-500/10 text-nature-400 border-nature-500/20';
+      case 'Active':
+        return 'bg-orange-500/10 text-orange-400 border-orange-500/20';
+      case 'Paid':
+      case 'Payment':
+        return 'bg-blue-500/10 text-blue-400 border-blue-500/20';
       case 'Pending':
       case 'Pending Payment':
         return 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20';
@@ -58,11 +69,8 @@ export default function HistoryTable({ role, data = [], title = "Recent History"
       case 'Outbid':
       case 'Failed':
       case 'No Bids':
-        return 'bg-red-500/10 text-red-400 border-red-500/20';
-      case 'Ready for Pickup':
-      case 'Pending Delivery':
       case 'Expired':
-        return 'bg-industrial-800 text-industrial-400 border-industrial-700';
+        return 'bg-red-500/10 text-red-400 border-red-500/20';
       case 'Ready for Pickup':
       case 'Pending Delivery':
         return 'bg-blue-500/10 text-blue-400 border-blue-500/20';
@@ -73,27 +81,27 @@ export default function HistoryTable({ role, data = [], title = "Recent History"
 
   const tableHeaders = role === 'individual' ? (
     <tr>
-      <th className="px-4 py-4 font-bold tracking-wider w-auto">Action / Item</th>
-      <th className="px-4 py-4 font-bold tracking-wider">Date</th>
-      <th className="px-4 py-4 font-bold tracking-wider">Factory (Seller)</th>
-      <th className="px-4 py-4 font-bold tracking-wider">Amount Paid/Bid</th>
-      <th className="px-4 py-4 font-bold tracking-wider">Status</th>
+      <th className="px-4 py-4 font-bold tracking-wider w-[32%] text-left bg-industrial-950/80">Action / Item</th>
+      <th className="px-4 py-4 font-bold tracking-wider w-[15%] text-left bg-industrial-950/80">Date</th>
+      <th className="px-4 py-4 font-bold tracking-wider w-[18%] text-left bg-industrial-950/80">Factory (Seller)</th>
+      <th className="px-4 py-4 font-bold tracking-wider w-[17%] text-right font-mono pr-8 bg-industrial-950/80">Amount</th>
+      <th className="px-4 py-4 font-bold tracking-wider w-[18%] text-center bg-industrial-950/80">Status</th>
     </tr>
   ) : role === 'company-buyer' ? (
     <tr>
-      <th className="px-4 py-4 font-bold tracking-wider w-auto">Action / Material</th>
-      <th className="px-4 py-4 font-bold tracking-wider">Date</th>
-      <th className="px-4 py-4 font-bold tracking-wider">Source Factory</th>
-      <th className="px-4 py-4 font-bold tracking-wider">Amount (LKR)</th>
-      <th className="px-4 py-4 font-bold tracking-wider">Status</th>
+      <th className="px-4 py-4 font-bold tracking-wider w-[32%] text-left bg-industrial-950/80">Action / Material</th>
+      <th className="px-4 py-4 font-bold tracking-wider w-[15%] text-left bg-industrial-950/80">Date</th>
+      <th className="px-4 py-4 font-bold tracking-wider w-[18%] text-left bg-industrial-950/80">Source Factory</th>
+      <th className="px-4 py-4 font-bold tracking-wider w-[17%] text-right font-mono pr-8 bg-industrial-950/80">Amount (LKR)</th>
+      <th className="px-4 py-4 font-bold tracking-wider w-[18%] text-center bg-industrial-950/80">Status</th>
     </tr>
   ) : (
     <tr>
-      <th className="px-4 py-4 font-bold tracking-wider w-auto">Action / Item</th>
-      <th className="px-4 py-4 font-bold tracking-wider">Date & Time</th>
-      <th className="px-4 py-4 font-bold tracking-wider">Winner / Partner</th>
-      <th className="px-4 py-4 font-bold tracking-wider">Value</th>
-      <th className="px-4 py-4 font-bold tracking-wider">Status</th>
+      <th className="px-4 py-4 font-bold tracking-wider w-[32%] text-left pl-6 bg-industrial-950/80 border-b border-industrial-800">Action / Item</th>
+      <th className="px-4 py-4 font-bold tracking-wider w-[15%] text-left bg-industrial-950/80 border-b border-industrial-800">Date & Time</th>
+      <th className="px-4 py-4 font-bold tracking-wider w-[18%] text-left bg-industrial-950/80 border-b border-industrial-800">Winner / Partner</th>
+      <th className="px-4 py-4 font-bold tracking-wider w-[17%] text-right font-mono pr-8 bg-industrial-950/80 border-b border-industrial-800">Value</th>
+      <th className="px-4 py-4 font-bold tracking-wider w-[18%] text-center pr-6 bg-industrial-950/80 border-b border-industrial-800">Status</th>
     </tr>
   );
 
@@ -143,7 +151,7 @@ export default function HistoryTable({ role, data = [], title = "Recent History"
           </motion.div>
         )}
       </AnimatePresence>
-      <div className="bg-industrial-900/50 backdrop-blur-md border border-industrial-800 rounded-2xl overflow-hidden shadow-2xl">
+      <div className="bg-industrial-900 border border-industrial-800 shadow-2xl relative">
         {displayData.length === 0 ? (
           <motion.div 
             initial={{ opacity: 0, y: 10 }}
@@ -174,8 +182,8 @@ export default function HistoryTable({ role, data = [], title = "Recent History"
             </p>
           </motion.div>
         ) : (
-          <table className="w-full text-sm text-left border-collapse table-auto">
-            <thead className="text-xs text-industrial-400 uppercase bg-industrial-950 border-y border-industrial-800 sticky top-0 z-10 shadow-md">
+          <table className="w-full text-sm text-left border-collapse table-fixed">
+            <thead className="text-xs text-industrial-400 uppercase sticky top-0 z-10 backdrop-blur-md">
               {tableHeaders}
             </thead>
             <tbody>
@@ -229,21 +237,21 @@ export default function HistoryTable({ role, data = [], title = "Recent History"
                     }}
                     className="border-b border-industrial-800 hover:bg-industrial-800/30 transition-colors group cursor-pointer"
                   >
-                    <td className="px-4 py-4 w-full">
+                    <td className="px-4 py-4 w-[32%] pl-6">
                       <div className="flex items-center gap-3">
                         <div className="w-8 h-8 rounded-full bg-industrial-900 border border-industrial-700 shadow-sm flex items-center justify-center shrink-0 group-hover:bg-industrial-800 transition-colors">
-                          {getIcon(mappedType)}
+                          {getIcon(mappedType, mappedStatus)}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="font-bold text-white shadow-sm leading-tight" title={mappedItem}>{mappedItem}</p>
+                          <p className="font-bold text-white shadow-sm leading-tight truncate" title={mappedItem}>{mappedItem}</p>
                           <p className="text-xs text-industrial-500">{mappedType}</p>
                         </div>
                       </div>
                     </td>
-                    <td className="px-4 py-4 text-industrial-400 text-xs font-medium whitespace-nowrap">{mappedDate}</td>
-                    <td className="px-4 py-4 text-industrial-300 font-medium whitespace-nowrap">{mappedPartner}</td>
-                    <td className="px-4 py-4 font-mono font-bold text-white whitespace-nowrap">{mappedAmount}</td>
-                    <td className="px-4 py-4 whitespace-nowrap">
+                    <td className="px-4 py-4 text-industrial-400 text-xs font-medium whitespace-nowrap w-[15%]">{mappedDate}</td>
+                    <td className="px-4 py-4 text-industrial-300 font-medium truncate w-[18%]">{mappedPartner}</td>
+                    <td className="px-4 py-4 font-mono font-bold text-white whitespace-nowrap text-right pr-8 w-[17%]">{mappedAmount}</td>
+                    <td className="px-4 py-4 whitespace-nowrap text-center w-[18%] pr-6">
                       <div className="flex flex-col gap-1 items-center">
                         <span className={`inline-block px-3 py-1.5 rounded-full text-xs font-bold border ${getStatusColor(mappedStatus)} text-center min-w-[80px]`}>
                           {mappedStatus}

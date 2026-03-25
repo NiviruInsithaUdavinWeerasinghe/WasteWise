@@ -39,7 +39,7 @@ const agreementSchema = new mongoose.Schema({
   },
   deliveryStatus: {
     type: String,
-    enum: ['pending', 'in_transit', 'delivered'],
+    enum: ['pending', 'in_transit', 'qr_scanned', 'delivered'],
     default: 'pending'
   },
   qrCodeString: {
