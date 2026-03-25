@@ -27,6 +27,7 @@ PORT=5000
 MONGO_URI=your_mongodb_connection_string
 JWT_SECRET=your_jwt_secret_key
 STRIPE_SECRET_KEY=your_stripe_test_key
+GOOGLE_MAPS_API_KEY=your_google_maps_api_key
 NODE_ENV=development
 ```
 
@@ -36,8 +37,15 @@ NODE_ENV=development
     * *Local MongoDB*: If you installed MongoDB on your computer, use `mongodb://localhost:27017/your_database_name`.
     * *Cloud MongoDB*: Create a free account on MongoDB Atlas, set up a cluster, click "Connect", choose "Connect your application", and copy the provided URI. 
 * **JWT_SECRET**: This is a private, random string used to securely sign user login tokens. You must generate this yourself. For local testing, any random text works. For a secure production key, run this in your terminal to generate one: `node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"`.
-* **STRIPE_SECRET_KEY**: Create a free developer account at Stripe.com. Open the Stripe Developer Dashboard, navigate to the "API keys" tab, ensure "Test mode" is turned on, and copy the "Secret key".
-* **NODE_ENV**: Tells the server what environment it is running in. Set this to `development` for local work.
+*   **STRIPE_SECRET_KEY**: Create a free developer account at Stripe.com. Open the Stripe Developer Dashboard, navigate to the "API keys" tab, ensure "Test mode" is turned on, and copy the "Secret key".
+*   **GOOGLE_MAPS_API_KEY**: This is used for the Distance Matrix API to calculate logistics fees.
+    1.  Go to the [Google Cloud Console](https://console.cloud.google.com/).
+    2.  Create a new project (e.g., `WasteWise-Logistics`).
+    3.  Enable the **Distance Matrix API**.
+    4.  Set up **Billing** (Note: $200 free credit monthly).
+    5.  Go to **APIs & Services > Credentials**, click **+ CREATE CREDENTIALS**, and select **API key**.
+    6.  Copy and paste this key into your `.env`.
+*   **NODE_ENV**: Tells the server what environment it is running in. Set this to `development` for local work.
 
 ### ML Service Environment Variables
 Create a `.env` file inside the `ml_service` directory:

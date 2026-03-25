@@ -5,6 +5,7 @@ const { sendNotification } = require('./notificationController');
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY || 'sk_test_dummy');
 const crypto = require('crypto');
 const PDFDocument = require('pdfkit');
+const axios = require('axios');
 
 // @desc    Create a listing
 // @route   POST /api/listings
@@ -225,6 +226,45 @@ const placeBid = async (req, res) => {
   }
 };
 
+const calculateDeliveryFee = async (req, res) => {
+  try {
+    const listingId = req.params.id;
+    const listing = await Listing.findById(listingId);
+    if (!listing) return res.status(404).json({ message: 'Listing not found' });
+
+    if (listing.pickupResponsibility !== 'Platform Logistics') {
+      return res.status(200).json({ deliveryFee: 0 });
+    }
+
+    const buyerId = req.user.id;
+    const buyer = await User.findById(buyerId);
+    const origin = listing.location;
+    const destination = buyer.companyDetails?.address || "Colombo, Sri Lanka";
+
+    const googleMapsApiKey = process.env.GOOGLE_MAPS_API_KEY;
+    const response = await axios.get(`https://maps.googleapis.com/maps/api/distancematrix/json?origins=${encodeURIComponent(origin)}&destinations=${encodeURIComponent(destination)}&key=${googleMapsApiKey}`);
+
+    if (response.data.status === 'OK' && response.data.rows[0].elements[0].status === 'OK') {
+      const distanceValue = response.data.rows[0].elements[0].distance.value;
+      const distanceKm = distanceValue / 1000;
+      const deliveryFee = (distanceKm * 50) + (listing.weight * 10);
+      return res.status(200).json({ deliveryFee });
+    } else {
+      if (response.data.error_message || response.data.status === 'REQUEST_DENIED') {
+        return res.status(500).json({
+          message: 'Logistics Service Error',
+          error: 'Invalid Google Maps API Key or Service Unavailable.',
+          isLogisticsError: true
+        });
+      }
+      return res.status(200).json({ deliveryFee: 500 }); // Fallback
+    }
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error calculating delivery fee' });
+  }
+};
+
 const completePayment = async (req, res) => {
   try {
     const listingId = req.params.id;
@@ -286,6 +326,47 @@ const completePayment = async (req, res) => {
     let paymentIntentId = `pi_simulated_${Date.now()}`;
     let clientSecret = `sec_simulated_${Date.now()}`;
 
+    let deliveryFee = 0;
+    let qrCodeString = null;
+
+    if (listing.pickupResponsibility === 'Platform Logistics') {
+      try {
+        const buyer = await User.findById(buyerId);
+        const origin = listing.location;
+        const destination = buyer.companyDetails?.address || "Colombo, Sri Lanka"; // Fallback for testing if address is missing
+
+        const googleMapsApiKey = process.env.GOOGLE_MAPS_API_KEY;
+        const response = await axios.get(`https://maps.googleapis.com/maps/api/distancematrix/json?origins=${encodeURIComponent(origin)}&destinations=${encodeURIComponent(destination)}&key=${googleMapsApiKey}`);
+
+        if (response.data.status === 'OK' && response.data.rows[0].elements[0].status === 'OK') {
+          const distanceValue = response.data.rows[0].elements[0].distance.value; // in meters
+          const distanceKm = distanceValue / 1000;
+          deliveryFee = (distanceKm * 50) + (listing.weight * 10);
+        } else {
+          console.error('Google Maps API Error:', response.data);
+          // Standard fallback fee if API fails but we don't want to block the user entirely
+          // or we can throw an error if the user insists on a "beautiful error".
+          // The request says "Show a beautiful error... if there's a problem with the api key".
+          if (response.data.error_message || response.data.status === 'REQUEST_DENIED') {
+            return res.status(500).json({
+              message: 'Logistics Service Error',
+              error: 'Invalid Google Maps API Key or Service Unavailable. Please contact support.',
+              isLogisticsError: true
+            });
+          }
+          deliveryFee = 500; // Flat fallback
+        }
+
+        qrCodeString = crypto.randomBytes(16).toString('hex');
+      } catch (err) {
+        console.error('Delivery calculation error:', err);
+        return res.status(500).json({ message: 'Error calculating delivery fee' });
+      }
+    }
+
+    // Update final total to include delivery fee
+    const totalWithDelivery = finalAmount + deliveryFee;
+
     // Instantiate Agreement
     const Agreement = require('../models/Agreement');
     const agreement = new Agreement({
@@ -294,7 +375,10 @@ const completePayment = async (req, res) => {
       listingId: listing._id,
       finalPrice: finalAmount,
       commissionDeduced: commission,
-      pickupResponsibility: listing.pickupResponsibility || 'Buyer Arranges Pickup'
+      pickupResponsibility: listing.pickupResponsibility || 'Buyer Arranges Pickup',
+      deliveryFee,
+      qrCodeString,
+      deliveryStatus: qrCodeString ? 'pending' : undefined
     });
     await agreement.save();
 
@@ -320,7 +404,9 @@ const completePayment = async (req, res) => {
       message: 'Payment completed successfully',
       clientSecret: clientSecret,
       paymentIntentId: paymentIntentId,
-      totalAmount: finalAmount,
+      totalAmount: totalWithDelivery,
+      baseAmount: finalAmount,
+      deliveryFee: deliveryFee,
       platformFee: commission,
       sellerTransfer: sellerTransfer,
       status: listing.status
@@ -901,6 +987,7 @@ const downloadAgreement = async (req, res) => {
       wasteType: agreement.listingId.wasteType,
       weight: agreement.listingId.weight,
       finalPrice: agreement.finalPrice,
+      deliveryFee: agreement.deliveryFee,
       commission: agreement.commissionDeduced,
       pickupResponsibility: agreement.pickupResponsibility,
       listingId: agreement.listingId._id.toString()
@@ -914,6 +1001,37 @@ const downloadAgreement = async (req, res) => {
   }
 };
 
+const getDeliveryStatus = async (req, res) => {
+  try {
+    const listingId = req.params.id;
+    const agreement = await Agreement.findOne({ listingId })
+      .populate('deliverymanId', 'name profilePhoto');
+
+    if (!agreement) {
+      return res.status(404).json({ message: 'No delivery info found for this listing' });
+    }
+
+    // Security: Only buyer, seller, deliveryman or admin can view
+    const userId = req.user.id;
+    if (req.user.role !== 'admin' &&
+      agreement.buyerId.toString() !== userId &&
+      agreement.sellerId.toString() !== userId &&
+      agreement.deliverymanId?.toString() !== userId) {
+      return res.status(403).json({ message: 'Not authorized' });
+    }
+
+    res.status(200).json({
+      deliveryStatus: agreement.deliveryStatus,
+      qrCodeString: agreement.qrCodeString,
+      deliveryFee: agreement.deliveryFee,
+      deliveryman: agreement.deliverymanId
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error fetching delivery status' });
+  }
+};
+
 module.exports = {
   createListing,
   getAllActiveListings,
@@ -921,9 +1039,8 @@ module.exports = {
   getSellerListings,
   getBuyerBids,
   placeBid,
-  completePayment,
-  getFailedTransactions,
-  confirmReceipt,
   getCertificate,
-  downloadAgreement
+  downloadAgreement,
+  calculateDeliveryFee,
+  getDeliveryStatus
 };

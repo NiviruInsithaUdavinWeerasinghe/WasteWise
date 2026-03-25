@@ -16,8 +16,13 @@ const userSchema = new mongoose.Schema({
   },
   role: {
     type: String,
-    enum: ['admin', 'company-seller', 'company-buyer', 'individual'],
+    enum: ['admin', 'company-seller', 'company-buyer', 'individual', 'deliveryman'],
     required: true
+  },
+  currentDeliveryId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Agreement',
+    default: null
   },
   isApproved: {
     type: Boolean,
