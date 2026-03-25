@@ -1,10 +1,40 @@
 import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, CheckCircle, Package, MapPin, Scale, Tag, Info, AlertTriangle } from 'lucide-react';
+import { X, CheckCircle, Package, MapPin, Scale, Tag, Info, AlertTriangle, QrCode } from 'lucide-react';
+import { QRCodeSVG } from 'qrcode.react';
+import { useAuth } from '../context/AuthContext';
 
 export default function DeliveryDetailsModal({ isOpen, onClose, delivery, onConfirmReceipt }) {
+  const { user } = useAuth();
   const [confirmStage, setConfirmStage] = useState(false);
+  const [deliveryInfo, setDeliveryInfo] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  React.useEffect(() => {
+    if (isOpen && delivery?.id) {
+      fetchDeliveryStatus();
+    } else {
+      setDeliveryInfo(null);
+    }
+  }, [isOpen, delivery?.id]);
+
+  const fetchDeliveryStatus = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch(`http://localhost:5000/api/listings/${delivery.id}/delivery-status`, {
+        headers: { Authorization: `Bearer ${user.token}` }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setDeliveryInfo(data);
+      }
+    } catch (err) {
+      console.error("Error fetching delivery status:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleClose = () => {
     setConfirmStage(false);
@@ -114,6 +144,25 @@ export default function DeliveryDetailsModal({ isOpen, onClose, delivery, onConf
                   <p className="text-xs font-bold uppercase tracking-wider text-industrial-500 mb-2">Description</p>
                   <p className="text-sm text-industrial-300 leading-relaxed italic">
                     "{delivery.description}"
+                  </p>
+                </div>
+              )}
+              {deliveryInfo?.deliveryStatus === 'in_transit' && deliveryInfo?.qrCodeString && (
+                <div className="mb-8 p-6 bg-nature-950/20 border border-nature-500/20 rounded-2xl flex flex-col items-center">
+                  <div className="flex items-center gap-2 text-nature-400 font-bold mb-4">
+                    <QrCode size={18} />
+                    <span className="text-sm tracking-wide uppercase">Courier Verification QR</span>
+                  </div>
+                  <div className="p-4 bg-white rounded-2xl shadow-[0_0_30px_rgba(34,197,94,0.2)]">
+                    <QRCodeSVG
+                      value={deliveryInfo.qrCodeString}
+                      size={180}
+                      level="H"
+                      includeMargin={true}
+                    />
+                  </div>
+                  <p className="mt-4 text-center text-[10px] text-industrial-400 font-medium">
+                    Show this code to the deliveryman upon arrival to confirm receipt.
                   </p>
                 </div>
               )}

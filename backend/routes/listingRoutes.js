@@ -31,6 +31,9 @@ router.post('/:id/bid', protect, placeBid);
 // Route to complete payment for a listing (protected)
 router.post('/:id/pay', protect, completePayment);
 
+// Route to calculate delivery fee (protected)
+router.get('/:id/delivery-fee', protect, calculateDeliveryFee);
+
 // Route to get listings for a specific seller
 router.get('/seller/:id', protect, getSellerListings);
 
@@ -39,5 +42,8 @@ router.post('/:id/confirm-receipt', protect, confirmReceipt);
 
 // Route to download Green Certificate PDF (protected)
 router.get('/:id/certificate', protect, getCertificate);
+
+// Route to get delivery status (protected)
+router.get('/:id/delivery-status', protect, getDeliveryStatus);
 
 module.exports = router;

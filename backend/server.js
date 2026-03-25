@@ -7,6 +7,7 @@ const listingRoutes = require('./routes/listingRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
 const agreementRoutes = require('./routes/agreementRoutes');
 const contractRoutes = require('./routes/contractRoutes');
+const deliveryRoutes = require('./routes/deliveryRoutes');
 const startCronJobs = require('./cronJobs');
 
 const app = express();
@@ -20,6 +21,7 @@ app.use('/api/listings', listingRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/agreements', agreementRoutes);
 app.use('/api/contracts', contractRoutes);
+app.use('/api/delivery', deliveryRoutes);
 
 const PORT = process.env.PORT || 5000;
 const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/wisewaste';

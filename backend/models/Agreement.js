@@ -28,6 +28,22 @@ const agreementSchema = new mongoose.Schema({
     type: String,
     enum: ['Buyer Arranges Pickup', 'Seller Delivers', 'Platform Logistics'],
     required: true
+  },
+  deliveryFee: {
+    type: Number,
+    default: 0
+  },
+  deliverymanId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  },
+  deliveryStatus: {
+    type: String,
+    enum: ['pending', 'in_transit', 'delivered'],
+    default: 'pending'
+  },
+  qrCodeString: {
+    type: String
   }
 }, { timestamps: true });
 
