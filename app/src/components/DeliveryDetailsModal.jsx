@@ -147,7 +147,7 @@ export default function DeliveryDetailsModal({ isOpen, onClose, delivery, onConf
                   </p>
                 </div>
               )}
-              {deliveryInfo?.deliveryStatus === 'in_transit' && deliveryInfo?.qrCodeString && (
+              {(deliveryInfo?.deliveryStatus === 'in_transit' || deliveryInfo?.deliveryStatus === 'pending') && deliveryInfo?.qrCodeString && (
                 <div className="mb-8 p-6 bg-nature-950/20 border border-nature-500/20 rounded-2xl flex flex-col items-center">
                   <div className="flex items-center gap-2 text-nature-400 font-bold mb-4">
                     <QrCode size={18} />

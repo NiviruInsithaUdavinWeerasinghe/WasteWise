@@ -121,10 +121,26 @@ export default function DeliveryDashboard() {
                     </h1>
                     <p className="text-industrial-400 font-medium">Earn by delivering industrial waste efficiently.</p>
                 </div>
-                <div className="bg-nature-500/10 px-4 py-2 rounded-2xl border border-nature-500/20">
-                    <span className="text-nature-500 font-bold text-sm">Status: Active Courier</span>
+                <div className={`px-4 py-2 rounded-2xl border ${!user?.isApproved ? 'bg-orange-500/10 border-orange-500/20' : 'bg-nature-500/10 border-nature-500/20'}`}>
+                    <span className={`${!user?.isApproved ? 'text-orange-500' : 'text-nature-500'} font-bold text-sm`}>
+                        Status: {user?.isApproved ? 'Active Courier' : 'Pending Verification'}
+                    </span>
                 </div>
             </header>
+
+            {!user?.isApproved && (
+                <motion.div
+                    initial={{ opacity: 0, y: -20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="bg-orange-500/10 border border-orange-500/50 rounded-3xl p-6 flex items-start gap-4 shadow-lg"
+                >
+                    <AlertCircle className="text-orange-500 shrink-0 mt-1" size={24} />
+                    <div>
+                        <h3 className="text-orange-600 font-bold text-lg mb-1">Account pending admin approval</h3>
+                        <p className="text-orange-700/80 text-sm">Your courier account is currently under review. You can browse available logistics jobs, but you will not be able to claim any deliveries until an administrator verifies your contact details and address.</p>
+                    </div>
+                </motion.div>
+            )}
 
             {/* Active Delivery Card */}
             <AnimatePresence>
@@ -227,7 +243,7 @@ export default function DeliveryDashboard() {
                                 <div className="flex flex-col items-center sm:items-end gap-2 w-full sm:w-auto">
                                     <p className="text-lg font-black text-nature-500">LKR {job.deliveryFee?.toLocaleString()}</p>
                                     <button
-                                        disabled={!!activeDelivery}
+                                        disabled={!!activeDelivery || !user?.isApproved}
                                         onClick={() => claimJob(job._id)}
                                         className="w-full sm:w-auto bg-industrial-800 hover:bg-nature-600 text-white font-bold px-6 py-2.5 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed group-hover:bg-nature-600 shadow-lg"
                                     >

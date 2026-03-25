@@ -9,11 +9,13 @@ export default function Register() {
     name: '',
     email: '',
     password: '',
-    role: 'individual' // default role
+    role: 'individual', // default role
+    phoneNumber: '',
+    address: ''
   });
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  
+
   const { register } = useAuth();
   const navigate = useNavigate();
 
@@ -40,6 +42,11 @@ export default function Register() {
       };
     }
 
+    if (formData.role === 'deliveryman') {
+      payload.phoneNumber = formData.phoneNumber;
+      payload.address = formData.address;
+    }
+
     const result = await register(payload);
 
     if (result.success) {
@@ -47,7 +54,7 @@ export default function Register() {
     } else {
       setError(result.message);
     }
-    
+
     setIsLoading(false);
   };
 
@@ -55,10 +62,10 @@ export default function Register() {
     <div className="min-h-screen bg-industrial-950 flex flex-col items-center justify-center p-4">
       {/* Return to home link */}
       <Link to="/" className="absolute top-6 left-6 text-industrial-400 hover:text-white transition-colors text-sm font-medium">
-         &larr; Back to Home
+        &larr; Back to Home
       </Link>
 
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         className="max-w-md w-full bg-industrial-900 rounded-2xl border border-industrial-800 p-8 shadow-2xl mt-12"
@@ -120,24 +127,25 @@ export default function Register() {
           </div>
 
           <div>
-             <label className="block text-sm font-medium text-industrial-300 mb-2">Account Type</label>
-             <select 
-               name="role"
-               value={formData.role}
-               onChange={handleChange}
-               className="w-full bg-industrial-950 border border-industrial-800 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-nature-500 transition-shadow shadow-inner"
-             >
-                <option value="individual">Individual</option>
-                <option value="company-seller">Factory (Seller)</option>
-                <option value="company-buyer">Recycler (Buyer)</option>
-             </select>
+            <label className="block text-sm font-medium text-industrial-300 mb-2">Account Type</label>
+            <select
+              name="role"
+              value={formData.role}
+              onChange={handleChange}
+              className="w-full bg-industrial-950 border border-industrial-800 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-nature-500 transition-shadow shadow-inner"
+            >
+              <option value="individual">Individual</option>
+              <option value="company-seller">Factory (Seller)</option>
+              <option value="company-buyer">Recycler (Buyer)</option>
+              <option value="deliveryman">Deliveryman</option>
+            </select>
           </div>
 
           {formData.role === 'company-seller' && (
-            <motion.div 
-               initial={{ opacity: 0, height: 0 }} 
-               animate={{ opacity: 1, height: 'auto' }}
-               className="space-y-5"
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              className="space-y-5"
             >
               <div>
                 <label className="block text-sm font-medium text-industrial-300 mb-2">Business Registration (BR) Number</label>
@@ -166,6 +174,39 @@ export default function Register() {
             </motion.div>
           )}
 
+          {formData.role === 'deliveryman' && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              className="space-y-5"
+            >
+              <div>
+                <label className="block text-sm font-medium text-industrial-300 mb-2">Phone Number</label>
+                <input
+                  type="text"
+                  name="phoneNumber"
+                  value={formData.phoneNumber || ''}
+                  onChange={handleChange}
+                  required
+                  className="w-full bg-industrial-950 border border-industrial-800 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-nature-500 transition-shadow shadow-inner"
+                  placeholder="e.g. +94 77 123 4567"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-industrial-300 mb-2">Residential Address</label>
+                <input
+                  type="text"
+                  name="address"
+                  value={formData.address || ''}
+                  onChange={handleChange}
+                  required
+                  className="w-full bg-industrial-950 border border-industrial-800 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-nature-500 transition-shadow shadow-inner"
+                  placeholder="Street, City"
+                />
+              </div>
+            </motion.div>
+          )}
+
           <button
             type="submit"
             disabled={isLoading}
@@ -174,7 +215,7 @@ export default function Register() {
             {isLoading ? 'Creating Account...' : 'Sign Up'}
           </button>
         </form>
-        
+
         <div className="mt-6 text-center text-sm text-industrial-400">
           <p>Already have an account? <Link to="/login" className="text-nature-400 cursor-pointer hover:underline">Sign in instead</Link></p>
         </div>

@@ -16,7 +16,7 @@ router.post('/change-password', protect, changePassword);
 // Admin routes for approvals
 router.get('/pending', protect, admin, async (req, res) => {
   try {
-    const pendingUsers = await User.find({ isApproved: false, role: 'company-seller' }).select('-password');
+    const pendingUsers = await User.find({ isApproved: false }).select('-password');
     res.json(pendingUsers);
   } catch (error) {
     console.error(error);
@@ -36,8 +36,8 @@ router.put('/approve/:id', protect, admin, async (req, res) => {
     // Log the approval
     await AuditLog.create({
       userId: user._id,
-      action: 'Seller Approved',
-      details: `The admin has approved the seller account for ${user.name}.`,
+      action: 'Account Approved',
+      details: `The admin has approved the ${user.role} account for ${user.name}.`,
       type: 'account_update'
     });
 
@@ -52,31 +52,31 @@ router.get('/admin-stats', protect, admin, async (req, res) => {
   try {
     const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
     const stats = [];
-    
+
     for (let i = 6; i >= 0; i--) {
       const startOfDay = new Date();
       startOfDay.setHours(0, 0, 0, 0);
       startOfDay.setDate(startOfDay.getDate() - i);
-      
+
       const endOfDay = new Date(startOfDay);
       endOfDay.setHours(23, 59, 59, 999);
-      
+
       const userCount = await User.countDocuments({
         createdAt: { $gte: startOfDay, $lte: endOfDay }
       });
-      
+
       const transCount = await Listing.countDocuments({
         status: { $in: ['sold', 'paid', 'completed'] },
         updatedAt: { $gte: startOfDay, $lte: endOfDay }
       });
-      
+
       stats.push({
         label: i === 0 ? 'Today' : days[startOfDay.getDay()],
         newUsers: userCount,
         transactions: transCount
       });
     }
-    
+
     res.json(stats);
   } catch (error) {
     console.error(error);
@@ -100,9 +100,9 @@ router.put('/profile', protect, async (req, res) => {
     if (name) user.name = name;
     if (profilePhoto !== undefined) user.profilePhoto = profilePhoto;
     if (companyDetails) {
-      user.companyDetails = { 
-        ...user.companyDetails, 
-        ...companyDetails 
+      user.companyDetails = {
+        ...user.companyDetails,
+        ...companyDetails
       };
       user.markModified('companyDetails');
     }
@@ -141,13 +141,13 @@ router.get('/activity', protect, admin, async (req, res) => {
     const { date } = req.query;
     let queryFilter = {};
     let auditFilter = { type: 'account_update' };
-    
+
     if (date) {
       const start = new Date(date);
       start.setHours(0, 0, 0, 0);
       const end = new Date(date);
       end.setHours(23, 59, 59, 999);
-      
+
       queryFilter.createdAt = { $gte: start, $lte: end };
       auditFilter.createdAt = { $gte: start, $lte: end };
     }
@@ -165,19 +165,19 @@ router.get('/activity', protect, admin, async (req, res) => {
       .limit(10);
 
     // 3. Recent Bids (extracted from recent listings with bids)
-    const bidFilter = date ? { 'bids.timestamp': { $gte: new Date(date).setHours(0,0,0,0), $lte: new Date(date).setHours(23,59,59,999) } } : { 'bids.0': { $exists: true } };
+    const bidFilter = date ? { 'bids.timestamp': { $gte: new Date(date).setHours(0, 0, 0, 0), $lte: new Date(date).setHours(23, 59, 59, 999) } } : { 'bids.0': { $exists: true } };
     const listingsWithBids = await Listing.find(bidFilter)
       .populate('bids.userId', 'name')
       .sort({ 'bids.timestamp': -1 })
       .limit(20);
-    
+
     let allBids = [];
     listingsWithBids.forEach(l => {
       l.bids.forEach(b => {
         const bDate = new Date(b.timestamp);
         if (date) {
-           const d = new Date(date);
-           if (bDate.toDateString() !== d.toDateString()) return;
+          const d = new Date(date);
+          if (bDate.toDateString() !== d.toDateString()) return;
         }
 
         allBids.push({
@@ -207,11 +207,11 @@ router.get('/activity', protect, admin, async (req, res) => {
     // 5. Recent Completed (Green Certificates)
     const completedFilter = { status: 'completed' };
     if (date) {
-       const start = new Date(date);
-       start.setHours(0, 0, 0, 0);
-       const end = new Date(date);
-       end.setHours(23, 59, 59, 999);
-       completedFilter.updatedAt = { $gte: start, $lte: end };
+      const start = new Date(date);
+      start.setHours(0, 0, 0, 0);
+      const end = new Date(date);
+      end.setHours(23, 59, 59, 999);
+      completedFilter.updatedAt = { $gte: start, $lte: end };
     }
     const recentCompleted = await Listing.find(completedFilter)
       .populate('sellerId', 'name')

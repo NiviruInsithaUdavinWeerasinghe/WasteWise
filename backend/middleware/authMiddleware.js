@@ -12,7 +12,7 @@ const protect = async (req, res, next) => {
     try {
 
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      
+
       req.user = await User.findById(decoded.id).select('-password');
       if (!req.user) {
         return res.status(401).json({ message: 'User not found' });
@@ -36,4 +36,12 @@ const admin = (req, res, next) => {
   }
 };
 
-module.exports = { protect, admin };
+const approved = (req, res, next) => {
+  if (req.user && req.user.isApproved) {
+    next();
+  } else {
+    res.status(403).json({ message: 'Account pending admin approval' });
+  }
+};
+
+module.exports = { protect, admin, approved };
