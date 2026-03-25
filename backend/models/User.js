@@ -19,6 +19,12 @@ const userSchema = new mongoose.Schema({
     enum: ['admin', 'company-seller', 'company-buyer', 'individual', 'deliveryman'],
     required: true
   },
+  phoneNumber: {
+    type: String
+  },
+  address: {
+    type: String
+  },
   currentDeliveryId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Agreement',

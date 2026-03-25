@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const Agreement = require('../models/Agreement');
 const User = require('../models/User');
-const { protect } = require('../middleware/authMiddleware');
+const { protect, approved } = require('../middleware/authMiddleware');
 
 // Apply protection to all delivery routes
 router.use(protect);
@@ -29,7 +29,7 @@ router.get('/available', async (req, res) => {
 // @desc    Deliveryman self-assigns an order
 // @route   POST /api/delivery/:id/assign
 // @access  Private (Deliveryman)
-router.post('/:id/assign', async (req, res) => {
+router.post('/:id/assign', approved, async (req, res) => {
     try {
         const deliverymanId = req.user.id;
         const agreementId = req.params.id;
@@ -65,7 +65,7 @@ router.post('/:id/assign', async (req, res) => {
 // @desc    Scan QR and mark as delivered
 // @route   POST /api/delivery/scan
 // @access  Private (Deliveryman)
-router.post('/scan', async (req, res) => {
+router.post('/scan', approved, async (req, res) => {
     try {
         const { qrCodeString } = req.body;
         const deliverymanId = req.user.id;

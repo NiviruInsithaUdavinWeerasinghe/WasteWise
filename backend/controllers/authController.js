@@ -11,7 +11,7 @@ const generateToken = (id) => {
 
 const registerUser = async (req, res) => {
   try {
-    const { name, email, password, role, companyDetails } = req.body;
+    const { name, email, password, role, companyDetails, phoneNumber, address } = req.body;
 
     if (!name || !email || !password || !role) {
       return res.status(400).json({ message: 'Please add all fields' });
@@ -21,7 +21,7 @@ const registerUser = async (req, res) => {
       return res.status(403).json({ message: 'Admin registration is not allowed' });
     }
 
-    const validRoles = ['company-seller', 'company-buyer', 'individual'];
+    const validRoles = ['company-seller', 'company-buyer', 'individual', 'deliveryman'];
     if (!validRoles.includes(role)) {
       return res.status(400).json({ message: 'Invalid role' });
     }
@@ -29,6 +29,12 @@ const registerUser = async (req, res) => {
     if (role === 'company-seller') {
       if (!companyDetails || !companyDetails.brNumber) {
         return res.status(400).json({ message: 'Business Registration Number is required for sellers' });
+      }
+    }
+
+    if (role === 'deliveryman') {
+      if (!phoneNumber || !address) {
+        return res.status(400).json({ message: 'Phone number and address are required for deliverymen' });
       }
     }
 
@@ -41,8 +47,8 @@ const registerUser = async (req, res) => {
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
-    // company-seller needs admin approval
-    const isApproved = role === 'company-seller' ? false : true;
+    // company-seller and deliveryman need admin approval
+    const isApproved = (role === 'company-seller' || role === 'deliveryman') ? false : true;
 
     const user = await User.create({
       name,
@@ -50,6 +56,8 @@ const registerUser = async (req, res) => {
       password: hashedPassword,
       role,
       isApproved,
+      phoneNumber,
+      address,
       companyDetails: role === 'company-seller' ? companyDetails : undefined
     });
 

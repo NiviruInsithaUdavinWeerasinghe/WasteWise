@@ -21,7 +21,8 @@ const createListing = async (req, res) => {
       price,
       startingBid,
       status,
-      imageUrl
+      imageUrl,
+      pickupResponsibility
     } = req.body;
 
     // The user ID comes from the protect middleware
@@ -58,7 +59,8 @@ const createListing = async (req, res) => {
       description: req.body.description,
       minBidIncrease: req.body.minBidIncrease || 0,
       endTime: req.body.endTime,
-      imageUrl
+      imageUrl,
+      pickupResponsibility: pickupResponsibility || 'Buyer Arranges Pickup'
     });
 
     // Automatically generate a "Listing Created" alert instead of Green Certificate

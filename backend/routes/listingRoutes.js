@@ -14,7 +14,7 @@ const {
   calculateDeliveryFee,
   getDeliveryStatus
 } = require('../controllers/listingController');
-const { protect, admin } = require('../middleware/authMiddleware');
+const { protect, admin, approved } = require('../middleware/authMiddleware');
 
 // Route to get all active listings
 router.get('/', getAllActiveListings);
@@ -25,7 +25,7 @@ router.get('/:id', getListingById);
 router.get('/buyer/bids', protect, getBuyerBids);
 
 // Route to create a new listing (protected)
-router.post('/', protect, createListing);
+router.post('/', protect, approved, createListing);
 
 // Route to place a bid on an auction (protected)
 router.post('/:id/bid', protect, placeBid);
