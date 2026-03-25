@@ -10,7 +10,9 @@ const {
   getFailedTransactions,
   confirmReceipt,
   getCertificate,
-  getListingById
+  getListingById,
+  calculateDeliveryFee,
+  getDeliveryStatus
 } = require('../controllers/listingController');
 const { protect, admin } = require('../middleware/authMiddleware');
 
