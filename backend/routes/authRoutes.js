@@ -232,11 +232,11 @@ router.get('/activity', protect, admin, async (req, res) => {
       .sort({ updatedAt: -1 })
       .limit(10);
 
-    // 6. Recent Audit Logs (Account Updates & Transactions)
-    const recentAuditLogs = await AuditLog.find({ ...auditFilter, type: { $in: ['account_update', 'transaction'] } })
-      .populate('userId', 'name profilePhoto')
+    // 6. Recent Audit Logs (Account Updates, Transactions, System Alerts)
+    const recentAuditLogs = await AuditLog.find({ ...auditFilter, type: { $in: ['account_update', 'transaction', 'system_alert'] } })
+      .populate('userId', 'name profilePhoto email')
       .sort({ createdAt: -1 })
-      .limit(10);
+      .limit(15);
 
     // Unify all into a single feed
     const activityFeed = [
@@ -313,14 +313,15 @@ router.get('/activity', protect, admin, async (req, res) => {
       })),
       ...recentAuditLogs.map(log => ({
         id: log._id,
-        type: 'System',
+        type: log.type === 'system_alert' ? 'Flagged' : 'System',
         item: log.action,
         partner: log.userId?.name || 'User',
         amount: '-',
         date: log.createdAt,
-        status: 'Approved',
+        status: log.action === 'Payment Defaulted' ? 'Failed' : 'Approved',
         description: log.details,
         imageUrl: log.userId?.profilePhoto,
+        email: log.userId?.email
       }))
     ];
 

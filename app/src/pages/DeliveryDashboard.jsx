@@ -34,6 +34,14 @@ export default function DeliveryDashboard() {
     const [error, setError] = useState('');
     const [stats, setStats] = useState({ totalEarnings: 0, totalDeliveries: 0, activeCount: 0, totalWeight: 0 });
     const [history, setHistory] = useState([]);
+    const [confirmingJobId, setConfirmingJobId] = useState(null);
+
+    useEffect(() => {
+        if (confirmingJobId) {
+            const timer = setTimeout(() => setConfirmingJobId(null), 3500);
+            return () => clearTimeout(timer);
+        }
+    }, [confirmingJobId]);
 
     useEffect(() => {
         if (user?.id) {
@@ -383,32 +391,46 @@ export default function DeliveryDashboard() {
                         {availableJobs.filter(j => j._id !== activeDelivery?._id).map((job) => (
                             <motion.div
                                 key={job._id}
-                                whileHover={{ y: -4 }}
-                                className="bg-industrial-900 border border-industrial-800 rounded-3xl p-5 sm:p-6 flex flex-col sm:flex-row items-center justify-between gap-6 hover:border-nature-500/30 transition-all group"
+                                whileHover={{ y: -2 }}
+                                className="bg-industrial-900 border border-industrial-800 rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-between gap-4 hover:border-nature-500/30 transition-all group"
                             >
-                                <div className="flex items-center gap-5 w-full">
-                                    <div className="w-16 h-16 bg-industrial-950 rounded-2xl flex items-center justify-center border border-industrial-800 group-hover:border-nature-500/20 transition-colors shrink-0 overflow-hidden">
-                                        <Package className="text-industrial-400" size={24} />
+                                <div className="flex items-center gap-4 w-full">
+                                    <div className="w-12 h-12 bg-industrial-950 rounded-xl flex items-center justify-center border border-industrial-800 group-hover:border-nature-500/20 transition-colors shrink-0 overflow-hidden">
+                                        <Package className="text-industrial-400" size={20} />
                                     </div>
                                     <div className="min-w-0">
-                                        <h4 className="text-white font-bold truncate flex items-center gap-2">
+                                        <h4 className="text-white font-bold text-sm truncate flex items-center gap-2">
                                             {job.listingId.wasteType}
                                             <span className="text-[10px] bg-industrial-800 text-industrial-500 px-2 py-0.5 rounded-md font-black">{job.listingId.weight}KG</span>
                                         </h4>
-                                        <div className="mt-2 space-y-1">
-                                            <p className="text-xs text-industrial-400 flex items-center gap-1.5"><MapPin size={12} className="text-nature-500" /> {job.listingId.location}</p>
-                                            <p className="text-xs text-industrial-400 flex items-center gap-1.5 font-bold text-white/80"><ChevronRight size={12} className="text-nature-500" /> To: {job.buyerId.name}</p>
+                                        <div className="mt-1 space-y-0.5">
+                                            <p className="text-[11px] text-industrial-400 flex items-center gap-1.5"><MapPin size={10} className="text-nature-500" /> {job.listingId.location}</p>
+                                            <p className="text-[11px] text-industrial-400 flex items-center gap-1.5 font-bold text-white/80"><ChevronRight size={10} className="text-nature-500" /> To: {job.buyerId.name}</p>
                                         </div>
                                     </div>
                                 </div>
-                                <div className="flex flex-col items-center sm:items-end gap-2 w-full sm:w-auto">
-                                    <p className="text-lg font-black text-nature-500">LKR {job.deliveryFee?.toLocaleString()}</p>
+                                <div className="flex flex-row sm:flex-col items-center sm:items-end justify-between sm:justify-center gap-4 w-full sm:w-auto shrink-0 border-t sm:border-t-0 border-industrial-800/50 pt-3 sm:pt-0 mt-2 sm:mt-0">
+                                    <div className="text-left sm:text-right">
+                                        <p className="text-[10px] text-industrial-500 font-black uppercase tracking-[0.15em] mb-0.5 sm:mb-1">Delivery Fee</p>
+                                        <p className="text-xl font-black text-nature-500 whitespace-nowrap leading-none">LKR {job.deliveryFee?.toLocaleString()}</p>
+                                    </div>
                                     <button
                                         disabled={!!activeDelivery || !user?.isApproved}
-                                        onClick={() => claimJob(job._id)}
-                                        className="w-full sm:w-auto bg-industrial-800 hover:bg-nature-600 text-white font-bold px-6 py-2.5 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed group-hover:bg-nature-600 shadow-lg"
+                                        onClick={() => {
+                                            if (confirmingJobId === job._id) {
+                                                claimJob(job._id);
+                                                setConfirmingJobId(null);
+                                            } else {
+                                                setConfirmingJobId(job._id);
+                                            }
+                                        }}
+                                        className={`min-w-[140px] font-black text-[10px] uppercase tracking-wider px-6 py-2.5 rounded-xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed shadow-xl ${
+                                            confirmingJobId === job._id 
+                                                ? 'bg-blue-600 text-white animate-pulse scale-105 shadow-blue-500/20' 
+                                                : 'bg-nature-500/10 border border-nature-500/20 text-nature-500 hover:bg-nature-500 hover:text-white group-hover:bg-nature-500 group-hover:text-white'
+                                        }`}
                                     >
-                                        Claim Job
+                                        {confirmingJobId === job._id ? 'Are you sure?' : 'Claim Job'}
                                     </button>
                                 </div>
                             </motion.div>
