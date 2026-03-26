@@ -88,6 +88,7 @@ export default function BuyerDashboard() {
             sellerPhoto: listing.sellerId?.profilePhoto,
             image: listing.imageUrl ? getOptimizedUrl(listing.imageUrl) : getMaterialImage(listing.wasteType),
             realBids: listing.bids,
+            defaultedBids: listing.defaultedBids,
             startingBid: listing.startingBid,
             description: listing.description,
             pickupResponsibility: listing.pickupResponsibility,
@@ -397,8 +398,20 @@ export default function BuyerDashboard() {
                       </div>
                       <div className="flex md:flex-col items-center md:items-end justify-between w-full md:w-auto mt-2 md:mt-0 pt-3 md:pt-0 border-t md:border-t-0 border-industrial-800 shrink-0">
                         <div className="font-bold font-mono text-white text-lg">{b.currentBid}</div>
-                        <span className={`text-xs font-bold px-3 py-1 rounded-full mt-1.5 border ${b.status === 'completed' ? 'bg-nature-500/10 text-nature-400 border-nature-500/20' : ['sold', 'paid'].includes(b.status) ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' : b.status === 'pending_payment' ? 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20' : 'bg-red-500/10 text-red-400 border-red-500/20'}`}>
-                          {b.status === 'completed' ? 'Received' : ['sold', 'paid'].includes(b.status) ? 'Paid' : b.status === 'pending_payment' ? 'Pending Payment' : 'Closed'}
+                        <span className={`text-xs font-bold px-3 py-1 rounded-full mt-1.5 border ${
+                          b.status === 'completed' ? 'bg-nature-500/10 text-nature-400 border-nature-500/20' :
+                          (b.status === 'pending_payment' && b.defaultedBids?.some(d => (d.userId?._id === user?.id || d.userId === user?.id))) ? 'bg-red-500/10 text-red-400 border-red-500/20' :
+                          ['sold', 'paid'].includes(b.status) ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' :
+                          b.status === 'pending_payment' ? 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20' :
+                          'bg-red-500/10 text-red-400 border-red-500/20'
+                        }`}>
+                          {
+                            b.status === 'completed' ? 'Received' :
+                            (b.status === 'pending_payment' && b.defaultedBids?.some(d => (d.userId?._id === user?.id || d.userId === user?.id))) ? 'Failed (Defaulted)' :
+                            ['sold', 'paid'].includes(b.status) ? 'Paid' :
+                            b.status === 'pending_payment' ? 'Pending Payment' :
+                            'Closed'
+                          }
                         </span>
                         {b.status === 'pending_payment' && b.isWinner && (
                           <button

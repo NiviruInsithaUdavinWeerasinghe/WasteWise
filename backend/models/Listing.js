@@ -87,6 +87,19 @@ const listingSchema = new mongoose.Schema({
       type: Date,
       default: Date.now
     }
+  }],
+  defaultedBids: [{
+    userId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User'
+    },
+    amount: {
+      type: Number
+    },
+    date: {
+      type: Date,
+      default: Date.now
+    }
   }]
 }, { timestamps: true });
 

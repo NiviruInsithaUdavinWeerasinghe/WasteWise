@@ -233,17 +233,26 @@ export default function AdminDashboard() {
               </thead>
               <tbody>
                 {failedTransactions.map(t => {
-                  let defaultingBuyer = 'Unknown';
-                  if (t.bids && t.bids.length > 0) {
+                  let defaultingBuyer = 'Unknown Buyer';
+                  let failedDate = new Date(t.updatedAt).toLocaleDateString();
+
+                  // Prioritize newest default if available (even if reassigned)
+                  if (t.defaultedBids && t.defaultedBids.length > 0) {
+                    const latestDefault = t.defaultedBids[t.defaultedBids.length - 1];
+                    defaultingBuyer = latestDefault.userId?.name || 'Unknown User';
+                    failedDate = new Date(latestDefault.date).toLocaleDateString();
+                  } else if (t.bids && t.bids.length > 0) {
+                    // Fallback for direct status === 'failed_payment'
                     const highestBid = t.bids.reduce((prev, current) => (prev.amount > current.amount) ? prev : current);
                     defaultingBuyer = highestBid.userId?.name || 'Unknown User';
                   }
+
                   return (
                     <tr key={t._id} className="border-b border-industrial-800 bg-red-500/5 hover:bg-red-500/10 transition-colors">
                       <td className="px-4 py-4 text-white font-mono">{t._id}</td>
-                      <td className="px-4 py-4 text-industrial-300">{t.sellerId?.name}</td>
+                      <td className="px-4 py-4 text-industrial-300">{t.sellerId?.name || 'System Listing'}</td>
                       <td className="px-4 py-4 text-red-400 font-bold">{defaultingBuyer}</td>
-                      <td className="px-4 py-4 text-industrial-400">{new Date(t.updatedAt).toLocaleDateString()}</td>
+                      <td className="px-4 py-4 text-industrial-400">{failedDate}</td>
                     </tr>
                   );
                 })}

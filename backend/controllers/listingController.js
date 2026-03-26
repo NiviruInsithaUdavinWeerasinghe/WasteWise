@@ -106,6 +106,7 @@ const getSellerListings = async (req, res) => {
     const listings = await Listing.find({ sellerId })
       .populate('sellerId', 'name email role profilePhoto')
       .populate('bids.userId', 'name email profilePhoto')
+      .populate('defaultedBids.userId', 'name email profilePhoto')
       .sort({ createdAt: -1 });
 
     res.status(200).json(listings);
@@ -122,7 +123,8 @@ const getListingById = async (req, res) => {
   try {
     const listing = await Listing.findById(req.params.id)
       .populate('sellerId', 'name email role profilePhoto')
-      .populate('bids.userId', 'name profilePhoto');
+      .populate('bids.userId', 'name profilePhoto')
+      .populate('defaultedBids.userId', 'name profilePhoto');
 
     if (!listing) {
       return res.status(404).json({ message: 'Listing not found' });
@@ -141,9 +143,15 @@ const getListingById = async (req, res) => {
 const getBuyerBids = async (req, res) => {
   try {
     const userId = req.user.id;
-    const listings = await Listing.find({ 'bids.userId': userId })
+    const listings = await Listing.find({ 
+      $or: [
+        { 'bids.userId': userId }, 
+        { 'defaultedBids.userId': userId }
+      ] 
+    })
       .populate('sellerId', 'name email role profilePhoto')
       .populate('bids.userId', 'name email profilePhoto')
+      .populate('defaultedBids.userId', 'name email profilePhoto')
       .sort({ createdAt: -1 });
 
     res.status(200).json(listings);
@@ -446,9 +454,16 @@ const getFailedTransactions = async (req, res) => {
     if (req.user.role !== 'admin') {
       return res.status(403).json({ message: 'Access denied. Admins only.' });
     }
-    const listings = await Listing.find({ status: 'failed_payment' })
+    const listings = await Listing.find({
+      $or: [
+        { status: 'failed_payment' },
+        { 'defaultedBids.0': { $exists: true } }
+      ]
+    })
       .populate('sellerId', 'name email role profilePhoto')
-      .populate('bids.userId', 'name email role profilePhoto');
+      .populate('bids.userId', 'name email role profilePhoto')
+      .populate('defaultedBids.userId', 'name email role profilePhoto')
+      .sort({ updatedAt: -1 });
     res.status(200).json(listings);
   } catch (error) {
     console.error(error);

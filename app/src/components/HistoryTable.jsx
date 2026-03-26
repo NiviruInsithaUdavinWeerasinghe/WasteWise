@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ArrowUpRight, ArrowDownLeft, Shield, CheckCircle, RefreshCw, Box, AlertTriangle, ShoppingBag, Clock, XCircle, FileSignature, X, Archive, CloudRain, Users } from 'lucide-react';
+import { ArrowUpRight, ArrowDownLeft, Shield, CheckCircle, RefreshCw, Box, AlertTriangle, ShoppingBag, Clock, XCircle, FileSignature, X, Archive, CloudRain, Users, UserCheck } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import { getOptimizedUrl } from '../services/cloudinaryService';
@@ -28,6 +28,7 @@ export default function HistoryTable({ role, data = [], title = "Recent History"
     if (['completed', 'verified', 'received', 'approved'].includes(s)) return <CheckCircle size={16} className="text-nature-500" />;
     if (['paid', 'payment'].includes(s)) return <ShoppingBag size={16} className="text-blue-500" />;
     if (['failed', 'no bids', 'expired', 'closed', 'outbid'].includes(s)) return <XCircle size={16} className="text-red-500" />;
+    if (s === 'reassigned') return <UserCheck size={16} className="text-purple-500" />;
     if (['pending payment', 'pending'].includes(s)) return <Clock size={16} className="text-yellow-500" />;
     if (s === 'active') return <RefreshCw size={16} className="text-orange-500 animate-spin-slow" />;
 
@@ -71,6 +72,9 @@ export default function HistoryTable({ role, data = [], title = "Recent History"
       case 'No Bids':
       case 'Expired':
         return 'bg-red-500/10 text-red-400 border-red-500/20';
+      case 'Reassigned':
+      case 'Reassigned (Pending)':
+        return 'bg-purple-500/10 text-purple-400 border-purple-500/20';
       case 'Ready for Pickup':
       case 'Pending Delivery':
         return 'bg-blue-500/10 text-blue-400 border-blue-500/20';
@@ -204,13 +208,15 @@ export default function HistoryTable({ role, data = [], title = "Recent History"
                   finalPriceValue = Math.max(...item.bids.map(b => b.amount));
                 }
                 let mappedAmount = isDBObj ? `LKR ${finalPriceValue}` : item.amount;
+                const hasDefaulted = isDBObj && item.defaultedBids && item.defaultedBids.length > 0;
                 let mappedStatus = isDBObj ? (
                   item.status === 'completed' ? 'Completed' :
                     item.status === 'sold' || item.status === 'paid' ? 'Paid' :
-                      item.status === 'pending_payment' ? 'Pending Payment' :
-                        item.status === 'failed_payment' ? 'Failed' :
-                          item.status === 'no_bids' ? 'No Bids' :
-                            item.status === 'expired' ? 'Expired' : 'Active'
+                      (item.status === 'pending_payment' && hasDefaulted) ? 'Reassigned' :
+                        item.status === 'pending_payment' ? 'Pending Payment' :
+                          item.status === 'failed_payment' ? 'Failed' :
+                            item.status === 'no_bids' ? 'No Bids' :
+                              item.status === 'expired' ? 'Expired' : 'Active'
                 ) : item.status;
                 let mappedPartner = '-';
                 if (isDBObj && (item.status === 'sold' || item.status === 'paid' || item.status === 'pending_payment' || item.status === 'completed')) {

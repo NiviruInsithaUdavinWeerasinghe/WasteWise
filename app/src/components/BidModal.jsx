@@ -12,15 +12,28 @@ export default function BidModal({ isOpen, onClose, item, onPlaceBid }) {
   const { user } = useAuth();
   const scrollRef = useRef(null);
 
-  const formatBids = (rawBids) => {
-    if (!rawBids || !Array.isArray(rawBids)) return [];
-    return rawBids.map((b, i) => ({
+  const formatBids = (rawBids, defaultedBids = []) => {
+    const active = (rawBids || []).map((b, i) => ({
       id: b._id || `real-${i}`,
       name: b.userId?.name || 'Bidder',
       profilePhoto: b.userId?.profilePhoto,
       amount: b.amount,
-      time: new Date(b.timestamp || b.createdAt || new Date()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-    })).reverse();
+      time: new Date(b.timestamp || b.createdAt || new Date()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      timestamp: new Date(b.timestamp || b.createdAt || new Date()).getTime(),
+      isDefaulted: false
+    }));
+
+    const defaulted = (defaultedBids || []).map((b, i) => ({
+      id: b._id || `defaulted-${i}`,
+      name: b.userId?.name || 'Previous Winner',
+      profilePhoto: b.userId?.profilePhoto,
+      amount: b.amount,
+      time: new Date(b.date || b.createdAt || new Date()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      timestamp: new Date(b.date || b.createdAt || new Date()).getTime(),
+      isDefaulted: true
+    }));
+
+    return [...active, ...defaulted].sort((a, b) => b.timestamp - a.timestamp);
   };
 
   const fetchBids = async () => {
@@ -31,8 +44,8 @@ export default function BidModal({ isOpen, onClose, item, onPlaceBid }) {
       const response = await fetch(`http://localhost:5000/api/listings/${listingId}`);
       if (response.ok) {
         const data = await response.json();
-        if (data.bids) {
-          setLiveBids(formatBids(data.bids));
+        if (data.bids || data.defaultedBids) {
+          setLiveBids(formatBids(data.bids, data.defaultedBids));
         }
         if (data.sellerId?.profilePhoto) {
           setSellerPhoto(data.sellerId.profilePhoto);
@@ -47,11 +60,11 @@ export default function BidModal({ isOpen, onClose, item, onPlaceBid }) {
     if (isOpen && item) {
       // Prioritize initializing with existing bids if provided
       if (item.realBids && liveBids.length === 0) {
-        setLiveBids(formatBids(item.realBids));
+        setLiveBids(formatBids(item.realBids, item.defaultedBids));
       }
       
       fetchBids();
-      const interval = setInterval(fetchBids, 5000); // Poll every 5 seconds
+      const interval = setInterval(fetchBids, 5000); 
       return () => clearInterval(interval);
     }
   }, [isOpen, item.id, item._id]);
@@ -249,32 +262,38 @@ export default function BidModal({ isOpen, onClose, item, onPlaceBid }) {
                  <div className="flex-1 overflow-y-auto p-6 relative custom-scrollbar" ref={scrollRef}>
                     <div className="absolute top-0 left-0 w-full h-8 bg-gradient-to-b from-industrial-900 to-transparent z-10 pointer-events-none"></div>
                     <div className="space-y-4">
-                       {liveBids.map((b, i) => (
-                          <motion.div 
-                             initial={i === 0 ? { opacity: 0, x: -20, bg: '#22c55e20' } : false}
-                             animate={{ opacity: 1, x: 0, bg: 'transparent' }}
-                             transition={{ duration: 0.5 }}
-                             key={b.id} 
-                             className={`flex justify-between items-center p-3 rounded-lg border ${i === 0 ? 'bg-nature-500/5 border-nature-500/30' : 'bg-industrial-950 border-industrial-800'}`}
-                          >
-                             <div className="flex items-center gap-3">
-                                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold overflow-hidden ${b.isYou ? 'bg-blue-500 text-white' : i === 0 ? 'bg-nature-500 text-white shadow-[0_0_10px_rgba(34,197,94,0.5)]' : 'bg-industrial-800 text-industrial-400'}`}>
-                                   {b.profilePhoto ? (
-                                      <img src={b.profilePhoto} alt={b.name} className="w-full h-full object-cover" />
-                                   ) : (
-                                      b.isYou ? 'You' : b.name.charAt(0)
-                                   )}
-                                </div>
-                                <div>
-                                   <p className={`text-sm font-bold ${b.isYou ? 'text-blue-400' : i === 0 ? 'text-nature-400' : 'text-white'}`}>{b.name}</p>
-                                   <p className="text-xs text-industrial-500">{b.time}</p>
-                                </div>
-                             </div>
-                             <div className={`font-mono font-bold ${i === 0 ? 'text-nature-400' : 'text-industrial-300'}`}>
-                                {b.amount.toLocaleString()} LKR
-                             </div>
-                          </motion.div>
-                       ))}
+                        {liveBids.map((b, i) => (
+                           <motion.div 
+                              initial={i === 0 && !b.isDefaulted ? { opacity: 0, x: -20, bg: '#22c55e20' } : false}
+                              animate={{ opacity: 1, x: 0, bg: 'transparent' }}
+                              transition={{ duration: 0.5 }}
+                              key={b.id} 
+                              className={`flex justify-between items-center p-3 rounded-lg border ${b.isDefaulted ? 'bg-red-500/5 border-red-500/30 grayscale-[0.5]' : i === 0 ? 'bg-nature-500/5 border-nature-500/30' : 'bg-industrial-950 border-industrial-800'}`}
+                           >
+                              <div className="flex items-center gap-3">
+                                 <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold overflow-hidden ${b.isDefaulted ? 'bg-red-500 text-white' : b.isYou ? 'bg-blue-500 text-white' : i === 0 ? 'bg-nature-500 text-white shadow-[0_0_10px_rgba(34,197,94,0.5)]' : 'bg-industrial-800 text-industrial-400'}`}>
+                                    {b.profilePhoto ? (
+                                       <img src={b.profilePhoto} alt={b.name} className="w-full h-full object-cover" />
+                                    ) : (
+                                       b.isYou ? 'You' : b.name.charAt(0)
+                                    )}
+                                 </div>
+                                 <div className="min-w-0 flex-1">
+                                    <div className="flex items-center gap-2">
+                                       <p className={`text-sm font-bold truncate ${b.isDefaulted ? 'text-red-400' : b.isYou ? 'text-blue-400' : i === 0 ? 'text-nature-400' : 'text-white'}`}>{b.name}</p>
+                                       {b.isDefaulted && (
+                                          <span className="shrink-0 text-[10px] bg-red-500/20 text-red-500 px-1.5 py-0.5 rounded font-bold uppercase tracking-tighter">Missed Payment</span>
+                                       )}
+                                    </div>
+                                    <p className="text-xs text-industrial-500">{b.time}</p>
+                                 </div>
+                              </div>
+                              <div className={`shrink-0 font-mono font-bold ${b.isDefaulted ? 'text-red-400/70 border-b border-red-500/20' : i === 0 ? 'text-nature-400' : 'text-industrial-300'}`}>
+                                 {b.isDefaulted && <span className="text-[10px] mr-1">Rs</span>}
+                                 {b.amount.toLocaleString()} LKR
+                              </div>
+                           </motion.div>
+                        ))}
                     </div>
                     <div className="absolute bottom-0 left-0 w-full h-8 bg-gradient-to-t from-industrial-900 to-transparent z-10 pointer-events-none"></div>
                  </div>

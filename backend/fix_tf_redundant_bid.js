@@ -1,0 +1,27 @@
+const mongoose = require('mongoose');
+
+async function fix() {
+  await mongoose.connect('mongodb://localhost:27017/wisewaste');
+  const db = mongoose.connection.db;
+  const users = db.collection('users');
+  const tf = await users.findOne({ name: 'TradeFord' });
+  
+  if (!tf) {
+    console.error('TradeFord user not found');
+    process.exit(1);
+  }
+
+  const res = await db.collection('listings').updateOne(
+    { _id: new mongoose.Types.ObjectId('69c392310e228672330a0439') },
+    { 
+      $pull: { 
+        bids: { userId: tf._id } 
+      }
+    }
+  );
+
+  console.log('Update result:', res);
+  process.exit();
+}
+
+fix();
