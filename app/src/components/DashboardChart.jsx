@@ -13,7 +13,7 @@ export default function DashboardChart({
 
   if (!data || data.length === 0) {
     return (
-      <div className="bg-transparent flex flex-col h-[280px] w-full justify-center items-center text-industrial-500 border border-dashed border-industrial-800 rounded-xl">
+      <div className="bg-transparent flex flex-col h-full w-full justify-center items-center text-industrial-500 border border-dashed border-industrial-800 rounded-xl">
         <p className="text-xs font-bold uppercase tracking-widest italic">No data available yet</p>
       </div>
     );
@@ -23,7 +23,7 @@ export default function DashboardChart({
   const maxVal2 = Math.max(...data.map(d => d[series2Key] || 0), 1);
 
   return (
-    <div className="bg-transparent p-0 flex flex-col h-[280px] w-full">
+    <div className="bg-transparent p-0 flex flex-col h-full w-full">
       <div className="flex justify-between items-center mb-1">
          <h3 className="text-white font-bold">{title}</h3>
          <div className="flex gap-4 text-[10px] font-bold text-industrial-400 uppercase tracking-widest">
@@ -32,7 +32,7 @@ export default function DashboardChart({
          </div>
       </div>
       
-      <div className="flex-1 flex items-end justify-between gap-1 relative mt-6">
+      <div className="flex-1 flex items-end justify-between gap-1 relative mt-8">
         {/* Y-axis guiding lines */}
         <div className="absolute inset-0 flex flex-col justify-between pointer-events-none opacity-20 py-6">
            <div className="border-b border-dashed border-industrial-700 w-full h-0"></div>
@@ -74,8 +74,8 @@ export default function DashboardChart({
                  )}
                </AnimatePresence>
 
-               {/* Bars */}
-               <div className="w-full flex justify-center gap-1 items-end h-[160px] pb-1">
+               {/* Bars Container */}
+               <div className="w-full flex justify-center gap-1 items-end h-[220px] pb-1">
                   <motion.div 
                     initial={{ height: 0 }}
                     animate={{ height: `${Math.max(h1, 5)}%` }}

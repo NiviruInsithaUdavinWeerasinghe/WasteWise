@@ -14,7 +14,10 @@ router.get('/available', async (req, res) => {
     try {
         const jobs = await Agreement.find({
             pickupResponsibility: 'Platform Logistics',
-            deliveryStatus: 'pending'
+            $or: [
+                { deliveryStatus: 'pending' },
+                { deliverymanId: req.user.id, deliveryStatus: { $in: ['in_transit', 'qr_scanned'] } }
+            ]
         }).populate('buyerId', 'name companyDetails')
             .populate('sellerId', 'name companyDetails')
             .populate('listingId', 'wasteType weight location');
@@ -52,10 +55,15 @@ router.post('/:id/assign', approved, async (req, res) => {
         agreement.deliveryStatus = 'in_transit';
         await agreement.save();
 
+        const populatedAgreement = await Agreement.findById(agreementId)
+            .populate('buyerId', 'name companyDetails')
+            .populate('sellerId', 'name companyDetails')
+            .populate('listingId', 'wasteType weight location');
+
         deliveryman.currentDeliveryId = agreementId;
         await deliveryman.save();
 
-        res.status(200).json({ message: 'Job assigned successfully', agreement });
+        res.status(200).json({ message: 'Job assigned successfully', agreement: populatedAgreement });
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: 'Server error assigning job' });
@@ -80,17 +88,70 @@ router.post('/scan', approved, async (req, res) => {
             return res.status(400).json({ message: 'This delivery is already completed' });
         }
 
-        agreement.deliveryStatus = 'delivered';
+        agreement.deliveryStatus = 'qr_scanned';
         await agreement.save();
 
-        const deliveryman = await User.findById(deliverymanId);
-        deliveryman.currentDeliveryId = null;
-        await deliveryman.save();
-
-        res.status(200).json({ message: 'Delivery completed successfully!' });
+        res.status(200).json({ message: 'QR scanned! Waiting for buyer to confirm receipt.' });
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: 'Server error during QR scan' });
+    }
+});
+
+// @desc    Get deliveryman stats
+// @route   GET /api/delivery/stats
+// @access  Private (Deliveryman)
+router.get('/stats', async (req, res) => {
+    try {
+        const deliverymanId = req.user.id;
+        const completedJobs = await Agreement.find({
+            deliverymanId,
+            deliveryStatus: 'delivered'
+        }).populate('listingId', 'weight');
+
+        const totalEarnings = completedJobs.reduce((sum, job) => sum + (job.deliveryFee || 0), 0);
+        const totalDeliveries = completedJobs.length;
+        
+        // Active jobs count
+        const activeCount = await Agreement.countDocuments({
+            deliverymanId,
+            deliveryStatus: { $in: ['in_transit', 'qr_scanned'] }
+        });
+
+        const totalWeight = completedJobs.reduce((sum, job) => {
+            return sum + (job.listingId?.weight || 0);
+        }, 0);
+
+        res.status(200).json({
+            totalEarnings,
+            totalDeliveries,
+            activeCount,
+            totalWeight
+        });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Server error fetching stats' });
+    }
+});
+
+// @desc    Get deliveryman history
+// @route   GET /api/delivery/history
+// @access  Private (Deliveryman)
+router.get('/history', async (req, res) => {
+    try {
+        const deliverymanId = req.user.id;
+        const history = await Agreement.find({
+            deliverymanId,
+            deliveryStatus: 'delivered'
+        }).populate('listingId', 'wasteType weight imageUrl')
+          .populate('buyerId', 'name')
+          .sort({ updatedAt: -1 })
+          .limit(10);
+
+        res.status(200).json(history);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Server error fetching history' });
     }
 });
 

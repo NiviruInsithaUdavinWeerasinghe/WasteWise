@@ -41,6 +41,7 @@ export function AuthProvider({ children }) {
           token: data.token,
           isApproved: data.isApproved,
           profilePhoto: data.profilePhoto,
+          phoneNumber: data.phoneNumber,
           companyDetails: data.companyDetails,
           // Optional: Add company name logic based on role if needed
           companyName: data.role.includes('company') ? `${data.name} Corp` : undefined
@@ -78,6 +79,7 @@ export function AuthProvider({ children }) {
           token: data.token,
           isApproved: data.isApproved,
           profilePhoto: data.profilePhoto,
+          phoneNumber: data.phoneNumber,
           companyDetails: data.companyDetails,
           companyName: data.role.includes('company') ? `${data.name} Corp` : undefined
         };

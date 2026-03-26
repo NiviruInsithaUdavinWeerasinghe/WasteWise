@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Leaf, Recycle, Menu, LogOut, User, Bell, Check, BellRing, Info, AlertCircle, ShoppingCart, Award, FileCheck, ChevronDown, ChevronUp } from 'lucide-react';
+import { Leaf, Recycle, Menu, LogOut, User, Bell, Check, BellRing, Info, AlertCircle, ShoppingCart, Award, FileCheck, ChevronDown, ChevronUp, CreditCard, Handshake, FileSignature, Clock, XCircle, TrendingDown, ShieldCheck, AlertTriangle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -10,6 +10,7 @@ export default function Navbar({ toggleUpload, showUpload }) {
   const navigate = useNavigate();
   const location = useLocation();
   const [notifications, setNotifications] = useState([]);
+  const [unreadCount, setUnreadCount] = useState(0);
   const [showDropdown, setShowDropdown] = useState(false);
   const [expandedId, setExpandedId] = useState(null);
 
@@ -25,6 +26,7 @@ export default function Navbar({ toggleUpload, showUpload }) {
       if (res.ok) {
         const data = await res.json();
         setNotifications(data.notifications || []);
+        setUnreadCount(data.unreadCount || 0);
       }
     } catch(e) { console.error('Failed to load notifications', e); }
   };
@@ -36,6 +38,7 @@ export default function Navbar({ toggleUpload, showUpload }) {
         headers: { Authorization: `Bearer ${user.token}` }
       });
       setNotifications(notifications.map(n => n._id === id ? { ...n, isRead: true } : n));
+      setUnreadCount(prev => Math.max(0, prev - 1));
     } catch(e) {}
   };
 
@@ -46,6 +49,7 @@ export default function Navbar({ toggleUpload, showUpload }) {
         headers: { Authorization: `Bearer ${user.token}` }
       });
       setNotifications(notifications.map(n => ({ ...n, isRead: true })));
+      setUnreadCount(0);
     } catch(e) {}
   };
 
@@ -53,16 +57,24 @@ export default function Navbar({ toggleUpload, showUpload }) {
     switch (type) {
       case 'auction_won': 
       case 'auction_sold': return <Award size={16} className="text-nature-500" />;
-      case 'outbid': 
-      case 'ending_soon': return <AlertCircle size={16} className="text-orange-500" />;
-      case 'certificate': 
-      case 'agreement_created': return <FileCheck size={16} className="text-blue-500" />;
+      case 'auction_lost':
+      case 'auction_ended_empty': return <XCircle size={16} className="text-red-400" />;
+      case 'outbid': return <TrendingDown size={16} className="text-orange-500" />;
+      case 'ending_soon': return <Clock size={16} className="text-yellow-500" />;
+      case 'certificate': return <ShieldCheck size={16} className="text-nature-400" />;
+      case 'agreement_created':
+      case 'contract_proposed': return <FileSignature size={16} className="text-blue-500" />;
+      case 'contract_signed':
+      case 'contract_established': return <Handshake size={16} className="text-cyan-400" />;
+      case 'payment_received': return <CreditCard size={16} className="text-emerald-500" />;
+      case 'payment_defaulted': return <AlertTriangle size={16} className="text-red-500" />;
       case 'admin_alert': return <BellRing size={16} className="text-red-500" />;
+      case 'marketplace_alert': return <ShoppingCart size={16} className="text-purple-400" />;
       default: return <Info size={16} className="text-industrial-400" />;
     }
   };
 
-  const unreadCount = notifications.filter(n => !n.isRead).length;
+
   const displayCount = unreadCount > 99 ? '99+' : unreadCount;
 
   const handleLogout = () => {
@@ -84,11 +96,11 @@ export default function Navbar({ toggleUpload, showUpload }) {
           </div>
           
           <div className="hidden md:flex items-center space-x-8">
-            {!isDashboard && (
+            {!isDashboard && user?.role !== 'deliveryman' && (
               <>
                 <button onClick={() => navigate('/marketplace')} className="text-industrial-300 hover:text-nature-400 font-medium transition-colors">Marketplace</button>
-                <button onClick={() => navigate('/')} className="text-industrial-300 hover:text-nature-400 font-medium transition-colors">Compliance</button>
-                <button onClick={() => navigate('/')} className="text-industrial-300 hover:text-nature-400 font-medium transition-colors">Logistics</button>
+                <button onClick={() => navigate('/')} className="text-industrial-300 hover:text-nature-400 font-medium transition-colors">Home</button>
+
               </>
             )}
             {isDashboard && <span className="text-industrial-300 font-medium px-4 py-1 bg-industrial-900 rounded-full flex items-center gap-2 border border-industrial-800">

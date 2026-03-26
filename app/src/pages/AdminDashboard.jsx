@@ -12,7 +12,17 @@ export default function AdminDashboard() {
   const [failedTransactions, setFailedTransactions] = useState([]);
   const [chartData, setChartData] = useState([]);
   const [platformActivity, setPlatformActivity] = useState([]);
-  const [filterDate, setFilterDate] = useState(new Date().toISOString().split('T')[0]);
+  const [summaryStats, setSummaryStats] = useState({
+    totalVerifiedFactories: 0,
+    totalUsers: 0,
+    totalCertificates: 0
+  });
+  const getTodayDate = () => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  };
+
+  const [filterDate, setFilterDate] = useState(getTodayDate());
   const { user } = useAuth();
 
   useEffect(() => {
@@ -60,7 +70,9 @@ export default function AdminDashboard() {
         headers: { Authorization: `Bearer ${user.token}` }
       });
       if (response.ok) {
-        setChartData(await response.json());
+        const data = await response.json();
+        setChartData(data.chartData);
+        setSummaryStats(data.summary);
       }
     } catch (error) {
       console.error('Failed to fetch admin stats', error);
@@ -111,7 +123,7 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
           index={0}
           icon={AlertTriangle}
@@ -123,27 +135,27 @@ export default function AdminDashboard() {
           index={1}
           icon={Building2}
           label="Verified Factories"
-          value="142"
+          value={summaryStats.totalVerifiedFactories}
           color="blue"
         />
         <StatCard
           index={2}
           icon={Users}
           label="Total Users Active"
-          value="2,894"
+          value={summaryStats.totalUsers.toLocaleString()}
           color="purple"
         />
         <StatCard
           index={3}
           icon={Shield}
           label="Certificates Issued"
-          value="15,300+"
+          value={summaryStats.totalCertificates.toLocaleString()}
           color="nature"
         />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <div className="lg:col-span-2 h-[360px]">
           <DashboardChart
             title="Platform Traffic & Transactions"
             data={chartData}
@@ -155,7 +167,7 @@ export default function AdminDashboard() {
         </div>
 
         {/* Verification Queue Panel */}
-        <div className="bg-industrial-900 rounded-2xl shadow-xl border border-industrial-800 overflow-hidden flex flex-col h-[400px]">
+        <div className="bg-industrial-900 rounded-2xl shadow-xl border border-industrial-800 overflow-hidden flex flex-col h-[360px]">
           <div className="p-5 border-b border-industrial-800 bg-industrial-950/50">
             <h3 className="font-bold text-white flex items-center gap-2">
               <Shield size={18} className="text-orange-500" />

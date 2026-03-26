@@ -1,32 +1,40 @@
 import React from 'react';
 import { Clock, TrendingUp, Package } from 'lucide-react';
 
-export default function AuctionCard({ title, weight, currentBid, minBid, timeEnds, type, image, isSeller, isClosed, onBid }) {
+export default function AuctionCard({ title, weight, currentBid, minBid, timeEnds, type, image, isSeller, isClosed, onBid, compact = false }) {
   return (
-    <div className="bg-industrial-900 rounded-xl shadow-lg border border-industrial-800 overflow-hidden hover:shadow-xl hover:border-industrial-700 transition-all group">
-      <div className="h-48 overflow-hidden relative">
-        <img src={image} alt={title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-        <div className="absolute top-3 right-3 bg-black/50 backdrop-blur-md text-white px-3 py-1 rounded-full text-xs font-medium border border-white/20">
-          {type}
+    <div className={`glass-industrial rounded-3xl overflow-hidden hover:bg-white/5 transition-all group scale-100 hover:scale-[1.02] active:scale-[0.98] ${compact ? 'w-64 shrink-0' : ''}`}>
+      <div className={`${compact ? 'h-32' : 'h-52'} overflow-hidden relative`}>
+        <img src={image} alt={title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
+        <div className="absolute top-4 right-4 bg-industrial-950/60 backdrop-blur-md text-nature-400 px-3 py-1 rounded-full text-[10px] font-bold border border-nature-500/20 uppercase tracking-widest">
+          {(() => {
+            if (!type) return "";
+            const match = type.match(/^(.+?)\s*\((.+?)\)$/);
+            if (match) {
+              const [_, main, sub] = match;
+              if (sub.toLowerCase().startsWith(main.toLowerCase())) return sub;
+            }
+            return type;
+          })()}
         </div>
       </div>
-      <div className="p-5">
-        <div className="flex justify-between items-start mb-2">
-           <h3 className="font-bold text-white line-clamp-1">{title}</h3>
-           <span className="flex items-center gap-1 text-xs font-semibold bg-industrial-800 text-industrial-300 px-2.5 py-1 rounded-md border border-industrial-700 shadow-inner">
-             <Package size={12} /> {weight}
+      <div className={compact ? 'p-4' : 'p-6'}>
+        <div className="flex justify-between items-start mb-4">
+           <h3 className={`font-bold text-white tracking-tight line-clamp-1 ${compact ? 'text-sm' : 'text-lg'}`}>{title}</h3>
+           <span className={`flex items-center gap-1.5 font-bold text-industrial-300 bg-white/5 px-2.5 py-1 rounded-lg border border-white/10 ${compact ? 'text-[10px]' : 'text-xs'}`}>
+             <Package size={compact ? 12 : 14} className="text-nature-500" /> {weight}
            </span>
         </div>
         
-        <div className="grid grid-cols-2 gap-4 my-4">
-           <div>
-              <p className="text-xs text-industrial-400 mb-1">Current Bid</p>
-              <p className="text-lg font-bold text-nature-400">{currentBid}</p>
+        <div className={`grid grid-cols-2 gap-4 ${compact ? 'my-3' : 'my-6'}`}>
+           <div className="space-y-1">
+              <p className={`text-industrial-500 font-bold uppercase tracking-tighter ${compact ? 'text-[9px]' : 'text-[10px]'}`}>Current Bid</p>
+              <p className={`font-black text-nature-400 tracking-tight ${compact ? 'text-lg' : 'text-2xl'}`}>{currentBid}</p>
            </div>
-           <div className="text-right">
-              <p className="text-xs text-industrial-400 mb-1">Status</p>
-              <div className={`flex items-center justify-end gap-1 font-medium text-sm px-2 py-0.5 rounded-md inline-flex border ${isClosed ? 'text-red-400 bg-red-500/10 border-red-500/20' : 'text-orange-400 bg-orange-500/10 border-orange-500/20'}`}>
-                 <Clock size={14} /> {timeEnds}
+           <div className="text-right space-y-1">
+              <p className={`text-industrial-500 font-bold uppercase tracking-tighter ${compact ? 'text-[9px]' : 'text-[10px]'}`}>Status</p>
+              <div className={`flex items-center justify-end gap-1.5 font-bold px-2 py-1 rounded-lg inline-flex border ${compact ? 'text-[9px]' : 'text-[11px]'} ${isClosed ? 'text-red-400 bg-red-400/10 border-red-400/20' : 'text-orange-400 bg-orange-400/10 border-orange-400/20'}`}>
+                 <Clock size={compact ? 12 : 14} /> {timeEnds}
               </div>
            </div>
         </div>
@@ -34,16 +42,16 @@ export default function AuctionCard({ title, weight, currentBid, minBid, timeEnd
         <button 
            onClick={isClosed && !isSeller ? null : onBid}
            disabled={isClosed && !isSeller}
-           className={`w-full py-2.5 rounded-lg font-bold text-sm transition-all flex items-center justify-center gap-2 ${
+           className={`w-full rounded-2xl font-black transition-all flex items-center justify-center gap-2 tracking-wide uppercase ${compact ? 'py-2 text-[10px]' : 'py-4 text-xs'} ${
              (isClosed && !isSeller)
              ? 'bg-industrial-800 text-industrial-600 border border-industrial-800 cursor-not-allowed'
              : isSeller 
-             ? 'bg-industrial-800 text-industrial-300 hover:bg-industrial-700 hover:text-white border border-industrial-700' 
-             : 'bg-nature-600 text-white hover:bg-nature-500 shadow-lg shadow-nature-900/50'
+             ? 'glass-industrial text-industrial-300 hover:text-white border-white/20' 
+             : 'bg-nature-600 text-white hover:bg-nature-500 shadow-xl shadow-nature-600/30'
            }`}
         >
-           {isSeller ? 'View Listing' : isClosed ? 'Auction Closed' : 'Place Bid'} 
-           {!isSeller && !isClosed && <TrendingUp size={16} />}
+           {isSeller ? 'View Transaction' : isClosed ? 'Closed' : 'Place Bid'} 
+           {!isSeller && !isClosed && <TrendingUp size={compact ? 14 : 18} />}
         </button>
       </div>
     </div>

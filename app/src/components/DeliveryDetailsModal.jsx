@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, CheckCircle, Package, MapPin, Scale, Tag, Info, AlertTriangle, QrCode } from 'lucide-react';
+import { X, CheckCircle, Package, MapPin, Scale, Tag, Info, AlertTriangle, QrCode, Loader2, Truck } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { useAuth } from '../context/AuthContext';
 
@@ -10,14 +10,27 @@ export default function DeliveryDetailsModal({ isOpen, onClose, delivery, onConf
   const [confirmStage, setConfirmStage] = useState(false);
   const [deliveryInfo, setDeliveryInfo] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [showCourierPopup, setShowCourierPopup] = useState(false);
 
   React.useEffect(() => {
+    let interval;
     if (isOpen && delivery?.id) {
       fetchDeliveryStatus();
+      
+      // Poll every 5 seconds while modal is open and delivery is not yet fully completed/delivered
+      interval = setInterval(() => {
+        if (deliveryInfo?.deliveryStatus !== 'delivered' && deliveryInfo?.deliveryStatus !== 'qr_scanned') {
+          fetchDeliveryStatus();
+        }
+      }, 5000);
     } else {
       setDeliveryInfo(null);
     }
-  }, [isOpen, delivery?.id]);
+
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [isOpen, delivery?.id, deliveryInfo?.deliveryStatus]);
 
   const fetchDeliveryStatus = async () => {
     setLoading(true);
@@ -86,8 +99,14 @@ export default function DeliveryDetailsModal({ isOpen, onClose, delivery, onConf
                 <X size={20} />
               </button>
               <div className="absolute bottom-4 left-6">
-                <span className="text-xs font-bold text-blue-400 bg-blue-500/10 px-3 py-1 rounded-full border border-blue-500/20 mb-2 inline-block">
-                  In Transit
+                <span className={`text-xs font-bold px-3 py-1 rounded-full border mb-2 inline-block ${
+                  deliveryInfo?.deliveryStatus === 'qr_scanned' 
+                    ? 'text-nature-400 bg-nature-500/10 border-nature-500/20' 
+                    : deliveryInfo?.deliveryman 
+                      ? 'text-blue-400 bg-blue-500/10 border-blue-500/20' 
+                      : 'text-industrial-400 bg-industrial-500/10 border-industrial-500/20'
+                }`}>
+                  {deliveryInfo?.deliveryStatus === 'qr_scanned' ? 'Ready for Handover' : deliveryInfo?.deliveryman ? 'In Transit' : 'Awaiting Courier'}
                 </span>
                 <h2 className="text-2xl font-bold text-white">{delivery.title}</h2>
               </div>
@@ -136,6 +155,73 @@ export default function DeliveryDetailsModal({ isOpen, onClose, delivery, onConf
                       <p className="text-white font-medium">{delivery.sellerName}</p>
                     </div>
                   </div>
+                  
+                  {deliveryInfo?.deliveryman && (
+                    <div className="relative">
+                      <button 
+                        onClick={() => setShowCourierPopup(!showCourierPopup)}
+                        className="w-full flex items-center gap-3 pt-4 border-t border-industrial-800 hover:bg-white/5 p-2 rounded-lg transition-colors group text-left"
+                      >
+                        {deliveryInfo.deliveryman.profilePhoto ? (
+                          <img src={deliveryInfo.deliveryman.profilePhoto} className="w-8 h-8 rounded-full border border-nature-500/30 object-cover" alt="Courier" />
+                        ) : (
+                          <div className="w-8 h-8 bg-nature-500/10 rounded-full flex items-center justify-center border border-nature-500/30">
+                            <Truck size={14} className="text-nature-500" />
+                          </div>
+                        )}
+                        <div className="flex-1">
+                          <p className="text-[10px] font-bold uppercase tracking-wider text-nature-500 group-hover:text-nature-400 transition-colors">Assigned Courier</p>
+                          <p className="text-white text-sm font-bold flex items-center gap-2">
+                            {deliveryInfo.deliveryman.name}
+                            <Info size={12} className="opacity-50" />
+                          </p>
+                        </div>
+                      </button>
+
+                      {/* Courier Contact Popup */}
+                      <AnimatePresence>
+                        {showCourierPopup && (
+                          <motion.div
+                            initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                            exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                            className="absolute bottom-full left-0 mb-2 w-64 bg-industrial-900 border border-industrial-700 rounded-xl shadow-2xl p-4 z-[60]"
+                          >
+                            <div className="flex items-center gap-3 mb-4">
+                                {deliveryInfo.deliveryman.profilePhoto ? (
+                                    <img src={deliveryInfo.deliveryman.profilePhoto} className="w-12 h-12 rounded-full border-2 border-nature-500/30 object-cover" alt="Courier" />
+                                ) : (
+                                    <div className="w-12 h-12 bg-nature-500/10 rounded-full flex items-center justify-center border-2 border-nature-500/30">
+                                        <Truck size={20} className="text-nature-500" />
+                                    </div>
+                                )}
+                                <div>
+                                    <p className="text-white font-bold">{deliveryInfo.deliveryman.name}</p>
+                                    <p className="text-[10px] text-nature-500 font-bold uppercase">Sustainability Partner</p>
+                                </div>
+                            </div>
+                            
+                            <div className="space-y-3">
+                                <a href={`mailto:${deliveryInfo.deliveryman.email}`} className="flex items-center gap-2 text-xs text-industrial-300 hover:text-white transition-colors bg-industrial-950/50 p-2 rounded-lg border border-industrial-800">
+                                    <div className="w-6 h-6 rounded-md bg-blue-500/10 flex items-center justify-center border border-blue-500/20">
+                                        <Info size={10} className="text-blue-500" />
+                                    </div>
+                                    <span className="truncate">{deliveryInfo.deliveryman.email}</span>
+                                </a>
+                                {deliveryInfo.deliveryman.phoneNumber && (
+                                    <a href={`tel:${deliveryInfo.deliveryman.phoneNumber}`} className="flex items-center gap-2 text-xs text-industrial-300 hover:text-white transition-colors bg-industrial-950/50 p-2 rounded-lg border border-industrial-800">
+                                        <div className="w-6 h-6 rounded-md bg-nature-500/10 flex items-center justify-center border border-nature-500/20">
+                                            <Info size={10} className="text-nature-500" />
+                                        </div>
+                                        <span>{deliveryInfo.deliveryman.phoneNumber}</span>
+                                    </a>
+                                )}
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -164,6 +250,18 @@ export default function DeliveryDetailsModal({ isOpen, onClose, delivery, onConf
                   <p className="mt-4 text-center text-[10px] text-industrial-400 font-medium">
                     Show this code to the deliveryman upon arrival to confirm receipt.
                   </p>
+                  
+                  {deliveryInfo?.deliveryStatus === 'qr_scanned' ? (
+                    <div className="mt-4 px-4 py-2 bg-nature-500/10 border border-nature-500/30 rounded-full flex items-center gap-2">
+                       <CheckCircle size={14} className="text-nature-500" />
+                       <span className="text-[10px] font-bold text-nature-400 uppercase tracking-wider">QR Scanned ✓ — You can now confirm receipt</span>
+                    </div>
+                  ) : (
+                    <div className="mt-4 px-4 py-2 bg-blue-500/10 border border-blue-500/30 rounded-full flex items-center gap-2 animate-pulse">
+                       <Loader2 size={12} className="text-blue-500 animate-spin" />
+                       <span className="text-[10px] font-bold text-blue-400 uppercase tracking-wider">Waiting for deliveryman to scan QR...</span>
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -177,12 +275,14 @@ export default function DeliveryDetailsModal({ isOpen, onClose, delivery, onConf
 
                 <motion.button
                   onClick={handleConfirmClick}
+                  disabled={deliveryInfo?.deliveryStatus !== 'qr_scanned' && delivery.pickupResponsibility === 'Platform Logistics'}
                   layout
                   animate={{
                     backgroundColor: confirmStage ? '#16a34a' : '#2563eb',
+                    opacity: (deliveryInfo?.deliveryStatus !== 'qr_scanned' && delivery.pickupResponsibility === 'Platform Logistics') ? 0.5 : 1
                   }}
                   transition={{ duration: 0.2 }}
-                  className="flex-[2] text-white font-bold py-3 rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg active:scale-95"
+                  className="flex-[2] text-white font-bold py-3 rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg active:scale-95 disabled:cursor-not-allowed"
                   style={{
                     boxShadow: confirmStage
                       ? '0 4px 24px rgba(22,163,74,0.35)'
@@ -197,7 +297,9 @@ export default function DeliveryDetailsModal({ isOpen, onClose, delivery, onConf
                   ) : (
                     <>
                       <CheckCircle size={20} className="shrink-0" />
-                      Confirm Receipt
+                      {deliveryInfo?.deliveryStatus !== 'qr_scanned' && delivery.pickupResponsibility === 'Platform Logistics' 
+                        ? 'Waiting for Scan' 
+                        : 'Confirm Receipt'}
                     </>
                   )}
                 </motion.button>

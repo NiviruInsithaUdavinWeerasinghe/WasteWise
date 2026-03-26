@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Bell, Check, Award, AlertCircle, FileCheck, BellRing, Info, Trash2, Archive, ArrowLeft } from 'lucide-react';
+import { Bell, Check, Award, AlertCircle, FileCheck, BellRing, Info, Trash2, Archive, ArrowLeft, CreditCard, Handshake, FileSignature, Clock, XCircle, TrendingDown, ShieldCheck, AlertTriangle, ShoppingCart } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -73,11 +73,19 @@ export default function Notifications() {
     switch (type) {
       case 'auction_won': 
       case 'auction_sold': return <Award size={20} className="text-nature-500" />;
-      case 'outbid': 
-      case 'ending_soon': return <AlertCircle size={20} className="text-orange-500" />;
-      case 'certificate': 
-      case 'agreement_created': return <FileCheck size={20} className="text-blue-500" />;
+      case 'auction_lost':
+      case 'auction_ended_empty': return <XCircle size={20} className="text-red-400" />;
+      case 'outbid': return <TrendingDown size={20} className="text-orange-500" />;
+      case 'ending_soon': return <Clock size={20} className="text-yellow-500" />;
+      case 'certificate': return <ShieldCheck size={20} className="text-nature-400" />;
+      case 'agreement_created':
+      case 'contract_proposed': return <FileSignature size={20} className="text-blue-500" />;
+      case 'contract_signed':
+      case 'contract_established': return <Handshake size={20} className="text-cyan-400" />;
+      case 'payment_received': return <CreditCard size={20} className="text-emerald-500" />;
+      case 'payment_defaulted': return <AlertTriangle size={20} className="text-red-500" />;
       case 'admin_alert': return <BellRing size={20} className="text-red-500" />;
+      case 'marketplace_alert': return <ShoppingCart size={20} className="text-purple-400" />;
       default: return <Info size={20} className="text-industrial-400" />;
     }
   };

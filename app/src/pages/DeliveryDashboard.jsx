@@ -2,18 +2,25 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
+    X,
+    Loader2,
+    DollarSign,
+    Award,
+    Clock,
+    History,
+    AlertCircle,
+    Navigation,
+    ExternalLink,
+    ChevronRight,
     Truck,
     Package,
     MapPin,
     CheckCircle,
     QrCode,
     Upload,
-    Loader2,
-    AlertCircle,
-    Navigation,
-    ExternalLink,
-    ChevronRight
+    Leaf
 } from 'lucide-react';
+import StatCard from '../components/StatCard.jsx';
 import { Html5QrcodeScanner, Html5Qrcode } from 'html5-qrcode';
 
 export default function DeliveryDashboard() {
@@ -23,10 +30,29 @@ export default function DeliveryDashboard() {
     const [loading, setLoading] = useState(true);
     const [scanning, setScanning] = useState(false);
     const [scannerResult, setScannerResult] = useState('');
+    const [message, setMessage] = useState({ type: '', text: '' });
     const [error, setError] = useState('');
+    const [stats, setStats] = useState({ totalEarnings: 0, totalDeliveries: 0, activeCount: 0, totalWeight: 0 });
+    const [history, setHistory] = useState([]);
 
     useEffect(() => {
-        fetchJobs();
+        if (user?.id) {
+            fetchJobs();
+            fetchStats();
+            fetchHistory();
+        }
+        if (message.text) {
+            const timer = setTimeout(() => setMessage({ text: '', type: '' }), 5000);
+            return () => clearTimeout(timer);
+        }
+    }, [user, message.text]);
+
+    useEffect(() => {
+        return () => {
+            if (window.scannerInstance) {
+                window.scannerInstance.stop().catch(console.error);
+            }
+        };
     }, []);
 
     const fetchJobs = async () => {
@@ -39,9 +65,13 @@ export default function DeliveryDashboard() {
                 const data = await response.json();
                 setAvailableJobs(data);
 
-                // Check if I have an active delivery
-                const active = data.find(job => job.deliverymanId === user.id && job.deliveryStatus === 'in_transit');
-                if (active) setActiveDelivery(active);
+                // Check if I have an active delivery (either in transit or just scanned by me)
+                const active = data.find(job => {
+                    const jobDeliverymanId = job.deliverymanId?._id || job.deliverymanId;
+                    return jobDeliverymanId === user.id && 
+                           (job.deliveryStatus === 'in_transit' || job.deliveryStatus === 'qr_scanned');
+                });
+                setActiveDelivery(active || null);
             }
         } catch (err) {
             console.error(err);
@@ -49,6 +79,24 @@ export default function DeliveryDashboard() {
         } finally {
             setLoading(false);
         }
+    };
+
+    const fetchStats = async () => {
+        try {
+            const res = await fetch('http://localhost:5000/api/delivery/stats', {
+                headers: { Authorization: `Bearer ${user.token}` }
+            });
+            if (res.ok) setStats(await res.json());
+        } catch (err) { console.error(err); }
+    };
+
+    const fetchHistory = async () => {
+        try {
+            const res = await fetch('http://localhost:5000/api/delivery/history', {
+                headers: { Authorization: `Bearer ${user.token}` }
+            });
+            if (res.ok) setHistory(await res.json());
+        } catch (err) { console.error(err); }
     };
 
     const claimJob = async (id) => {
@@ -59,17 +107,21 @@ export default function DeliveryDashboard() {
             });
             const data = await response.json();
             if (response.ok) {
+                setMessage({ type: 'success', text: 'Job claimed successfully! Get moving.' });
                 fetchJobs();
                 setActiveDelivery(data.agreement);
             } else {
-                alert(data.message);
+                setMessage({ type: 'error', text: data.message || 'Failed to claim job' });
             }
         } catch (err) {
-            alert('Error claiming job');
+            setMessage({ type: 'error', text: 'Error claiming job' });
         }
     };
 
     const handleScanSuccess = async (decodedText) => {
+        if (window.scannerInstance) {
+            await stopScanner();
+        }
         setScanning(false);
         try {
             const response = await fetch('http://localhost:5000/api/delivery/scan', {
@@ -82,28 +134,61 @@ export default function DeliveryDashboard() {
             });
             const data = await response.json();
             if (response.ok) {
-                alert('Delivery confirmed! High five!');
-                setActiveDelivery(null);
-                fetchJobs();
+                setMessage({ type: 'success', text: 'QR scanned successfully! Waiting for buyer to confirm receipt.' });
+                fetchJobs(); 
             } else {
-                alert(data.message);
+                setMessage({ type: 'error', text: data.message });
             }
         } catch (err) {
-            alert('Scanning error');
+            setMessage({ type: 'error', text: 'Scanning error. Please try again.' });
+        }
+    };
+
+    const handleFileChange = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const html5QrCode = new Html5Qrcode("reader-hidden");
+        try {
+            const decodedText = await html5QrCode.scanFile(file, true);
+            handleScanSuccess(decodedText);
+        } catch (err) {
+            setMessage({ type: 'error', text: "No QR code found in this image. Please try another one." });
+            console.error(err);
         }
     };
 
     const startScanner = () => {
         setScanning(true);
         setTimeout(() => {
-            const scanner = new Html5QrcodeScanner("reader", {
-                fps: 10,
-                qrbox: { width: 250, height: 250 },
-                rememberLastUsedCamera: true,
-                supportedScanTypes: [0, 1] // Camera and File
+            const html5QrCode = new Html5Qrcode("reader");
+            const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+            
+            html5QrCode.start(
+                { facingMode: "environment" }, 
+                config, 
+                handleScanSuccess
+            ).catch(err => {
+                console.error("Scanner start error:", err);
+                setError("Could not start camera. Please ensure permissions are granted.");
+                setScanning(false);
             });
-            scanner.render(handleScanSuccess, (err) => console.warn(err));
-        }, 100);
+
+            // Store instance for cleanup
+            window.scannerInstance = html5QrCode;
+        }, 300);
+    };
+
+    const stopScanner = async () => {
+        if (window.scannerInstance) {
+            try {
+                await window.scannerInstance.stop();
+                delete window.scannerInstance;
+            } catch (err) {
+                console.error("Scanner stop error:", err);
+            }
+        }
+        setScanning(false);
     };
 
     if (loading) return (
@@ -113,7 +198,29 @@ export default function DeliveryDashboard() {
     );
 
     return (
-        <div className="max-w-4xl mx-auto p-4 sm:p-6 lg:p-8 space-y-8">
+        <div className="space-y-6 relative">
+            {/* Global Notification */}
+            <AnimatePresence>
+                {message.text && (
+                    <motion.div
+                        initial={{ opacity: 0, y: -20, x: '-50%' }}
+                        animate={{ opacity: 1, y: 0, x: '-50%' }}
+                        exit={{ opacity: 0, y: -20, x: '-50%' }}
+                        className={`fixed top-6 left-1/2 z-[200] px-6 py-3 rounded-2xl shadow-2xl border flex items-center gap-3 backdrop-blur-xl ${
+                            message.type === 'success' 
+                                ? 'bg-nature-500/20 border-nature-500/30 text-nature-100' 
+                                : 'bg-red-500/20 border-red-500/30 text-red-100'
+                        }`}
+                    >
+                        {message.type === 'success' ? <CheckCircle size={20} /> : <AlertCircle size={20} />}
+                        <span className="font-bold text-sm tracking-tight">{message.text}</span>
+                        <button onClick={() => setMessage({ text: '', type: '' })} className="ml-4 opacity-50 hover:opacity-100">
+                            <X size={16} />
+                        </button>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
             <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-industrial-900 p-6 rounded-3xl border border-industrial-800 shadow-xl">
                 <div>
                     <h1 className="text-3xl font-black text-white flex items-center gap-3">
@@ -127,6 +234,45 @@ export default function DeliveryDashboard() {
                     </span>
                 </div>
             </header>
+
+            {/* Stats Dashboard */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                <StatCard 
+                    index={0}
+                    icon={DollarSign}
+                    label="Total Earnings"
+                    value={`Rs ${stats.totalEarnings?.toLocaleString()}`}
+                    subValue="Paid via Secure Escrow"
+                    color="nature"
+                />
+
+                <StatCard 
+                    index={1}
+                    icon={Award}
+                    label="Deliveries"
+                    value={stats.totalDeliveries}
+                    subValue="100% Success Rate"
+                    color="blue"
+                />
+
+                <StatCard 
+                    index={2}
+                    icon={Clock}
+                    label="Active Assignment"
+                    value={stats.activeCount}
+                    subValue="Real-time Tracking"
+                    color="orange"
+                />
+
+                <StatCard 
+                    index={3}
+                    icon={Leaf}
+                    label="Weight Delivered"
+                    value={`${stats.totalWeight?.toLocaleString()} KG`}
+                    subValue="Industrial Waste Diverted"
+                    color="purple"
+                />
+            </div>
 
             {!user?.isApproved && (
                 <motion.div
@@ -146,17 +292,17 @@ export default function DeliveryDashboard() {
             <AnimatePresence>
                 {activeDelivery && (
                     <motion.div
-                        initial={{ opacity: 0, scale: 0.9 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        exit={{ opacity: 0, scale: 0.9 }}
-                        className="bg-gradient-to-br from-nature-600 to-nature-700 rounded-3xl p-8 text-white shadow-2xl relative overflow-hidden"
-                    >
-                        <div className="absolute top-0 right-0 p-8 opacity-10">
+                         initial={{ opacity: 0, scale: 0.9 }}
+                         animate={{ opacity: 1, scale: 1 }}
+                         exit={{ opacity: 0, scale: 0.9 }}
+                         className="bg-gradient-to-br from-nature-600 to-nature-700 rounded-3xl p-6 text-white shadow-2xl relative overflow-hidden"
+                     >
+                         <div className="absolute top-0 right-0 p-6 opacity-10">
                             <Navigation size={120} />
                         </div>
                         <div className="relative z-10">
-                            <span className="bg-white/20 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest mb-4 inline-block">Active Assignment</span>
-                            <h2 className="text-2xl font-black mb-6">{activeDelivery.listingId.wasteType} Delivery</h2>
+                            <span className="bg-white/20 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest mb-2 inline-block">Active Assignment</span>
+                            <h2 className="text-xl font-black mb-4">{activeDelivery.listingId.wasteType} Delivery</h2>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
                                 <div className="flex items-start gap-3">
@@ -170,26 +316,41 @@ export default function DeliveryDashboard() {
                                 <div className="flex items-start gap-3">
                                     <Navigation className="shrink-0 mt-1" size={20} />
                                     <div>
-                                        <p className="text-white/60 text-xs font-bold uppercase tracking-wider">Destination</p>
-                                        <p className="font-bold">{activeDelivery.buyerId.name}</p>
-                                        <p className="text-sm opacity-80">{activeDelivery.buyerId.companyDetails?.address || 'Buyer Registered Address'}</p>
+                                        <p className="text-white/60 text-[10px] font-bold uppercase tracking-wider">Destination</p>
+                                        <p className="font-bold text-sm">{activeDelivery.buyerId.name}</p>
+                                        <p className="text-xs opacity-80 truncate max-w-[200px]">{activeDelivery.buyerId.companyDetails?.address || 'Buyer Registered Address'}</p>
                                     </div>
                                 </div>
                             </div>
 
-                            {!scanning ? (
-                                <button
-                                    onClick={startScanner}
-                                    className="w-full bg-white text-nature-700 font-black py-4 rounded-2xl flex items-center justify-center gap-3 hover:bg-industrial-50 transition-all shadow-xl text-lg group"
-                                >
-                                    <QrCode size={24} className="group-hover:scale-110 transition-transform" />
-                                    Scan to Confirm Delivery
-                                </button>
+                            {activeDelivery.deliveryStatus === 'qr_scanned' ? (
+                                <div className="w-full bg-white/20 border border-white/30 text-white font-black py-4 rounded-2xl flex items-center justify-center gap-3 shadow-xl text-lg">
+                                    <CheckCircle size={24} />
+                                    QR Scanned - Waiting for Buyer
+                                </div>
+                            ) : !scanning ? (
+                                <>
+                                    <div className="flex flex-col sm:flex-row gap-3">
+                                        <button
+                                            onClick={startScanner}
+                                            className="flex-1 bg-white text-nature-700 font-black py-3 rounded-xl flex items-center justify-center gap-3 hover:bg-industrial-50 transition-all shadow-xl group"
+                                        >
+                                            <QrCode size={20} className="group-hover:scale-110 transition-transform" />
+                                            Scan QR
+                                        </button>
+                                        <label className="flex-1 bg-nature-800/30 border border-white/20 text-white font-black py-3 rounded-xl flex items-center justify-center gap-3 hover:bg-white/10 transition-all cursor-pointer group">
+                                            <Upload size={20} className="group-hover:scale-110 transition-transform" />
+                                            Upload Image
+                                            <input type="file" accept="image/*" onChange={handleFileChange} className="hidden" />
+                                        </label>
+                                    </div>
+                                    <div id="reader-hidden" className="hidden"></div>
+                                </>
                             ) : (
                                 <div className="bg-white rounded-3xl p-4 sm:p-6 overflow-hidden">
-                                    <div id="reader" className="w-full rounded-2xl overflow-hidden border-4 border-nature-100"></div>
+                                    <div id="reader" className="w-full aspect-square max-w-[400px] mx-auto rounded-2xl overflow-hidden"></div>
                                     <button
-                                        onClick={() => setScanning(false)}
+                                        onClick={stopScanner}
                                         className="w-full mt-4 text-nature-600 font-bold py-2 hover:bg-nature-50 rounded-xl transition-colors"
                                     >
                                         Cancel Scanner
@@ -256,15 +417,45 @@ export default function DeliveryDashboard() {
                 )}
             </section>
 
-            {/* Info Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="bg-industrial-900/50 p-6 rounded-3xl border border-industrial-800 hover:bg-industrial-900 transition-colors cursor-help">
-                    <h5 className="text-white font-bold mb-3 flex items-center gap-2"><Navigation size={18} className="text-nature-500" /> How it works</h5>
-                    <p className="text-xs text-industrial-400 leading-relaxed">Claim jobs from the available pool. Pick up the waste from the seller location and deliver it to the buyer. Scan the buyer's QR code on arrival to confirm delivery and get paid instantly.</p>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-stretch pb-12">
+                <div className="bg-industrial-900 p-6 rounded-3xl border border-industrial-800 shadow-xl space-y-4 h-[400px]">
+                    <div className="flex items-center gap-3">
+                        <div className="bg-nature-500/10 p-2 rounded-lg"><Navigation className="text-nature-500" size={20} /></div>
+                        <h3 className="text-xl font-bold text-white tracking-tight">How it works</h3>
+                    </div>
+                    <div className="space-y-4 text-industrial-400 text-sm leading-relaxed overflow-y-auto pr-2 custom-scrollbar h-[260px]">
+                        <p>1. <strong>Claim Assignments</strong>: Browse the available jobs and claim ones that fit your vehicle capacity and route.</p>
+                        <p>2. <strong>Pick Up Waste</strong>: Navigate to the seller location (factory) and pick up the industrial waste listing.</p>
+                        <p>3. <strong>Verify Delivery</strong>: Upon arrival at the buyer location, present your QR profile or scan the buyer's handshake code to confirm receipt.</p>
+                        <p>4. <strong>Instant Payout</strong>: Once verified, the delivery fee is instantly credited to your platform wallet via our secure escrow system.</p>
+                    </div>
                 </div>
-                <div className="bg-industrial-900/50 p-6 rounded-3xl border border-industrial-800 hover:bg-industrial-900 transition-colors cursor-help">
-                    <h5 className="text-white font-bold mb-3 flex items-center gap-2"><ExternalLink size={18} className="text-blue-500" /> Delivery Guidelines</h5>
-                    <p className="text-xs text-industrial-400 leading-relaxed">Ensure you have the proper vehicle capacity for the weight listed. Maintain waste segregation standards during transport for premium recycling points.</p>
+
+                <div className="bg-industrial-900 p-8 rounded-3xl border border-industrial-800 shadow-xl space-y-6 h-[400px] flex flex-col">
+                    <div className="flex items-center gap-3">
+                        <div className="bg-nature-500/10 p-2 rounded-lg"><History className="text-nature-500" size={20} /></div>
+                        <h3 className="text-xl font-bold text-white tracking-tight">Recent Activity</h3>
+                    </div>
+                    <div className="space-y-4 flex-1 overflow-y-auto pr-2 custom-scrollbar">
+                        {history.length > 0 ? history.map((item) => (
+                            <div key={item._id} className="flex items-center gap-4 p-3 bg-industrial-950/50 rounded-2xl border border-industrial-800/50 group hover:border-nature-500/30 transition-all">
+                                <img src={item.listingId?.imageUrl} className="w-10 h-10 rounded-lg object-cover border border-industrial-800 group-hover:border-nature-500/20" />
+                                <div className="flex-1 min-w-0">
+                                    <p className="text-xs font-bold text-white truncate">{item.listingId?.wasteType}</p>
+                                    <p className="text-[10px] text-industrial-500 uppercase font-black">To: {item.buyerId?.name}</p>
+                                </div>
+                                <div className="text-right">
+                                    <p className="text-xs font-bold text-nature-500">+LKR {item.deliveryFee?.toLocaleString()}</p>
+                                    <p className="text-[10px] text-industrial-500 uppercase font-bold">Paid</p>
+                                </div>
+                            </div>
+                        )) : (
+                            <div className="text-center py-12 opacity-40 h-full flex flex-col items-center justify-center">
+                                <History size={48} className="mb-4" />
+                                <p className="text-xs font-bold uppercase tracking-widest text-industrial-600 font-black">No history yet</p>
+                            </div>
+                        )}
+                    </div>
                 </div>
             </div>
         </div>

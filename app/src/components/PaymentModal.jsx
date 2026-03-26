@@ -1,14 +1,15 @@
 import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, CreditCard, Lock, Loader2, CheckCircle, Wifi } from 'lucide-react';
+import { X, CreditCard, Lock, Loader2, CheckCircle, Wifi, Info, Navigation, Scale } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
-export default function PaymentModal({ isOpen, onClose, amount, deliveryFee = 0, logisticsError = null, onSuccess }) {
+export default function PaymentModal({ isOpen, onClose, amount, deliveryFee = 0, deliveryDetails = null, logisticsError = null, onSuccess }) {
   const { user } = useAuth();
   const storageKey = `wisewaste_saved_card_${user?.id || 'guest'}`;
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [showFeeDetails, setShowFeeDetails] = useState(false);
 
   // Dummy form state
   const [cardNumber, setCardNumber] = useState('');
@@ -135,9 +136,64 @@ export default function PaymentModal({ isOpen, onClose, amount, deliveryFee = 0,
                         LKR {(amount + deliveryFee)?.toLocaleString()}
                       </div>
                       {deliveryFee > 0 && (
-                        <p className="text-nature-500 text-[9px] font-bold mt-1 uppercase tracking-tighter">
-                          Includes Logistics Fee
-                        </p>
+                        <div className="relative">
+                          <button 
+                            type="button"
+                            onClick={() => setShowFeeDetails(!showFeeDetails)}
+                            className="text-nature-500 text-[9px] font-bold mt-1 uppercase tracking-tighter hover:text-nature-400 transition-colors flex items-center gap-1 group"
+                          >
+                            Includes Logistics Fee <Info size={10} className="opacity-70 group-hover:opacity-100" />
+                          </button>
+
+                          {/* Fee Breakdown Popup */}
+                          <AnimatePresence>
+                            {showFeeDetails && deliveryDetails && (
+                              <motion.div
+                                initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                                animate={{ opacity: 1, y: 0, scale: 1 }}
+                                exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                                className="absolute left-0 top-full mt-2 z-[60] w-64 bg-industrial-950 border border-industrial-800 rounded-2xl shadow-2xl p-4 overflow-hidden"
+                              >
+                                <div className="absolute top-0 left-0 w-1 h-full bg-nature-500"></div>
+                                <h5 className="text-[10px] font-black text-white uppercase tracking-widest mb-3 flex items-center gap-2">
+                                  Fee Breakdown
+                                </h5>
+                                
+                                <div className="space-y-3">
+                                  <div className="flex justify-between items-center bg-white/5 p-2 rounded-lg">
+                                    <div className="flex items-center gap-2">
+                                      <Lock size={12} className="text-industrial-500" />
+                                      <span className="text-[10px] text-industrial-400 font-bold uppercase">Base Commission</span>
+                                    </div>
+                                    <span className="text-[10px] text-white font-mono">LKR {deliveryDetails.baseFee || 500}</span>
+                                  </div>
+
+                                  <div className="flex justify-between items-center bg-white/5 p-2 rounded-lg">
+                                    <div className="flex items-center gap-2">
+                                      <Navigation size={12} className="text-industrial-500" />
+                                      <span className="text-[10px] text-industrial-400 font-bold uppercase">Distance ({deliveryDetails.distanceKm}km)</span>
+                                    </div>
+                                    <span className="text-[10px] text-white font-mono">+{((deliveryDetails.distanceKm || 0) * (deliveryDetails.distanceRate || 15)).toLocaleString()}</span>
+                                  </div>
+
+                                  <div className="flex justify-between items-center bg-white/5 p-2 rounded-lg">
+                                    <div className="flex items-center gap-2">
+                                      <Scale size={12} className="text-industrial-500" />
+                                      <span className="text-[10px] text-industrial-400 font-bold uppercase">Weight ({deliveryDetails.weight}kg)</span>
+                                    </div>
+                                    <span className="text-[10px] text-white font-mono">+{((deliveryDetails.weight || 0) * (deliveryDetails.weightRate || 0.75)).toLocaleString()}</span>
+                                  </div>
+                                  
+                                  <div className="pt-2 border-t border-industrial-800 flex justify-between items-center">
+                                    <span className="text-[10px] text-nature-500 font-black uppercase">Total Logistics</span>
+                                    <span className="text-xs text-nature-500 font-black font-mono">LKR {deliveryFee.toLocaleString()}</span>
+                                  </div>
+                                </div>
+                                <p className="text-[8px] text-industrial-500 mt-3 italic">Calculated using Industrial Bulk rates.</p>
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
+                        </div>
                       )}
                     </div>
                     {deliveryFee > 0 && (

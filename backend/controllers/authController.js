@@ -71,6 +71,7 @@ const registerUser = async (req, res) => {
         isApproved: user.isApproved,
         companyDetails: user.companyDetails,
         profilePhoto: user.profilePhoto,
+        phoneNumber: user.phoneNumber,
         token: generateToken(user._id),
       });
     } else {
@@ -98,6 +99,7 @@ const loginUser = async (req, res) => {
         isApproved: user.isApproved,
         companyDetails: user.companyDetails,
         profilePhoto: user.profilePhoto,
+        phoneNumber: user.phoneNumber,
         token: generateToken(user._id),
       });
     } else {

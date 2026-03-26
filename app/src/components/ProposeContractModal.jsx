@@ -128,7 +128,9 @@ export default function ProposeContractModal({ isOpen, onClose, onSuccess }) {
                 {step === 1 ? (
                   <motion.div key="step1" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-4">
                     <div>
-                      <label className="block text-xs font-bold text-industrial-400 uppercase mb-2">Search Counterparty by Email</label>
+                      <label className="block text-xs font-bold text-industrial-400 uppercase mb-2">
+                        {user?.role === 'company-seller' ? 'Search Buyer by Email' : 'Search Seller by Email'}
+                      </label>
                       <div className="relative">
                         <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-industrial-400" />
                         <input
@@ -136,11 +138,16 @@ export default function ProposeContractModal({ isOpen, onClose, onSuccess }) {
                           value={searchQuery}
                           autoFocus
                           onChange={e => handleSearch(e.target.value)}
-                          placeholder="e.g. buyer@company.com"
+                          placeholder={user?.role === 'company-seller' ? "e.g. buyer@factory.com" : "e.g. seller@recyclesoft.com"}
                           className="w-full bg-industrial-800 border border-industrial-700 rounded-xl pl-10 pr-4 py-3 text-white placeholder-industrial-500 focus:outline-none focus:border-nature-500/50 transition-colors text-sm"
                         />
                         {searching && <Loader2 size={16} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-industrial-400 animate-spin" />}
                       </div>
+                      <p className="mt-2 text-[10px] text-industrial-500 italic">
+                        {user?.role === 'company-seller' 
+                          ? "You can only propose long-term contracts to Buyers or Individuals." 
+                          : "You can only propose long-term contracts to Company Sellers."}
+                      </p>
                     </div>
 
                     {/* Results */}

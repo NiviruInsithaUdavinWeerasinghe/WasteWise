@@ -52,6 +52,11 @@ router.get('/admin-stats', protect, admin, async (req, res) => {
   try {
     const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
     const stats = [];
+    
+    // Totals for top cards
+    const totalVerifiedFactories = await User.countDocuments({ role: 'company-seller', isApproved: true });
+    const totalUsers = await User.countDocuments({ role: { $ne: 'admin' } });
+    const totalCertificates = await Listing.countDocuments({ status: 'completed' });
 
     for (let i = 6; i >= 0; i--) {
       const startOfDay = new Date();
@@ -77,7 +82,14 @@ router.get('/admin-stats', protect, admin, async (req, res) => {
       });
     }
 
-    res.json(stats);
+    res.json({
+      chartData: stats,
+      summary: {
+        totalVerifiedFactories,
+        totalUsers,
+        totalCertificates
+      }
+    });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Server error fetching admin stats' });
@@ -95,9 +107,10 @@ router.put('/profile', protect, async (req, res) => {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    const { name, profilePhoto, companyDetails } = req.body;
+    const { name, profilePhoto, companyDetails, phoneNumber } = req.body;
 
     if (name) user.name = name;
+    if (phoneNumber) user.phoneNumber = phoneNumber;
     if (profilePhoto !== undefined) user.profilePhoto = profilePhoto;
     if (companyDetails) {
       user.companyDetails = {
@@ -124,6 +137,7 @@ router.put('/profile', protect, async (req, res) => {
       role: user.role,
       isApproved: user.isApproved,
       profilePhoto: user.profilePhoto,
+      phoneNumber: user.phoneNumber,
       companyDetails: user.companyDetails,
       token: generateToken(user._id)
     });
@@ -324,13 +338,33 @@ router.get('/activity', protect, admin, async (req, res) => {
 router.get('/search', protect, async (req, res) => {
   try {
     const { email } = req.query;
-    if (!email || email.length < 3) {
-      return res.status(400).json({ message: 'Enter at least 3 characters to search' });
+    if (!email || email.length < 2) {
+      return res.status(400).json({ message: 'Enter at least 2 characters to search' });
     }
+
+    const requesterRole = req.user.role;
+    let allowedTargetRoles = [];
+
+    if (requesterRole === 'company-seller') {
+      // Sellers can propose to Buyers
+      allowedTargetRoles = ['company-buyer', 'individual'];
+    } else if (requesterRole === 'company-buyer' || requesterRole === 'individual') {
+      // Buyers can propose to Company Sellers
+      allowedTargetRoles = ['company-seller'];
+    }
+
+    // Guard: Only allow search if requester has a valid trading role
+    if (allowedTargetRoles.length === 0) {
+      return res.json([]);
+    }
+
     const users = await User.find({
       email: { $regex: email, $options: 'i' },
-      _id: { $ne: req.user.id } // Exclude self
+      _id: { $ne: req.user.id }, // Exclude self
+      role: { $in: allowedTargetRoles },
+      isApproved: true // Only approved counterparties
     }).select('_id name email role').limit(10);
+    
     res.json(users);
   } catch (error) {
     console.error(error);

@@ -140,11 +140,17 @@ export default function BidModal({ isOpen, onClose, item, onPlaceBid }) {
                        <X size={16} /> Close Room
                     </button>
                     <div className="absolute bottom-6 left-6 right-6">
-                       <div className="flex gap-2 mb-3">
-                          <span className="bg-nature-500/80 backdrop-blur-md text-white px-2.5 py-1 rounded-md text-xs font-bold uppercase tracking-wider border border-white/20">Live Auction</span>
-                          <span className="bg-black/60 backdrop-blur-md text-industrial-300 px-2.5 py-1 rounded-md text-xs font-bold border border-white/10 uppercase tracking-wider">{item.type || 'Material'}</span>
-                       </div>
-                       <h2 className="text-2xl md:text-3xl font-bold text-white leading-tight shadow-black drop-shadow-lg">{item.title}</h2>
+                        <div className="flex gap-2 mb-3">
+                           <span className="bg-nature-500/80 backdrop-blur-md text-white px-2.5 py-1 rounded-md text-xs font-bold uppercase tracking-wider border border-white/20">Live Auction</span>
+                        </div>
+                        <h2 className="text-2xl md:text-3xl font-bold text-white leading-tight shadow-black drop-shadow-lg">
+                          {(() => {
+                            const type = item.type || "Material";
+                            const m = type.match(/^(.+?)\s*\((.+?)\)$/);
+                            if (m && m[2].toLowerCase().startsWith(m[1].toLowerCase())) return m[2];
+                            return type;
+                          })()} Procurement
+                        </h2>
                     </div>
                  </div>
 
@@ -195,7 +201,7 @@ export default function BidModal({ isOpen, onClose, item, onPlaceBid }) {
                             {item.sellerName || 'Verified Factory Source'} 
                             <CheckCircle size={14} className="text-blue-500" />
                           </h4>
-                          <p className="text-industrial-500 text-xs text-nature-500">Verified Seller Network</p>
+                          <p className="text-xs text-nature-500">Verified Seller Network</p>
                        </div>
                        <button className="text-xs font-bold text-industrial-400 hover:text-white transition-colors bg-industrial-800 px-3 py-1.5 rounded-lg border border-industrial-700">View Profile</button>
                     </div>

@@ -31,6 +31,7 @@ export default function BuyerDashboard() {
   const [auctionSlas, setAuctionSlas] = useState([]);
   const [showProposeModal, setShowProposeModal] = useState(false);
   const [buyerStats, setBuyerStats] = useState({ totalWeightTonnes: 0, totalBids: 0, totalContracts: 0, totalExpenditure: 0, co2OffsetKg: 0 });
+  const [deliveryDetails, setDeliveryDetails] = useState(null);
 
   const formatDeadline = (endTime) => {
     if (!endTime) return "Ends Soon";
@@ -89,6 +90,7 @@ export default function BuyerDashboard() {
             realBids: listing.bids,
             startingBid: listing.startingBid,
             description: listing.description,
+            pickupResponsibility: listing.pickupResponsibility,
             minBidIncrease: listing.minBidIncrease,
             isWinner: (listing.bids?.length > 0 && (['sold', 'pending_payment', 'paid'].includes(listing.status)))
               ? (() => {
@@ -226,6 +228,7 @@ export default function BuyerDashboard() {
       const data = await response.json();
       if (response.ok) {
         setDeliveryFee(data.deliveryFee || 0);
+        setDeliveryDetails(data);
       } else if (data.isLogisticsError) {
         setLogisticsError(data.error || data.message);
       }
@@ -276,7 +279,7 @@ export default function BuyerDashboard() {
   };
 
   return (
-    <div className="max-w-7xl mx-auto space-y-8 px-4 sm:px-6 lg:px-8 py-8">
+    <div className="space-y-6">
       {/* Header & Verification Badge */}
       <div className="flex flex-col md:flex-row gap-6 items-start md:items-center justify-between">
         <div>
@@ -294,7 +297,7 @@ export default function BuyerDashboard() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-5">
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
         <StatCard
           index={0}
           icon={Package}
@@ -344,9 +347,9 @@ export default function BuyerDashboard() {
         />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left Column: Ledger & Bids */}
-        <div className="lg:col-span-2 space-y-8">
+        <div className="lg:col-span-2 space-y-6">
 
           {/* Active Bids */}
           <div className="bg-industrial-900 rounded-xl shadow-lg border border-industrial-800 overflow-hidden pt-6">
@@ -364,12 +367,13 @@ export default function BuyerDashboard() {
             </div>
 
             {myBids[activeTab]?.length > 0 ? (
-              <div className={`p-6 bg-industrial-950/30 ${activeTab === 'active' ? 'grid grid-cols-1 md:grid-cols-2 gap-6' : 'flex flex-col gap-4'}`}>
+              <div className={`p-6 bg-industrial-950/30 ${activeTab === 'active' ? 'flex gap-4 overflow-x-auto pb-4 custom-scrollbar' : 'flex flex-col gap-3 max-h-[450px] overflow-y-auto pr-2 custom-scrollbar'}`}>
                 {myBids[activeTab].map(b => (
                   activeTab === 'active' ? (
                     <AuctionCard
                       key={b.id}
                       {...b}
+                      compact={true}
                       onBid={() => setSelectedItem(b)}
                     />
                   ) : (
@@ -382,7 +386,12 @@ export default function BuyerDashboard() {
                         <img src={b.image} alt={b.title} className="w-16 h-16 rounded-xl object-cover border border-industrial-800 shrink-0 group-hover:border-nature-500/30 transition-colors" />
                         <div className="min-w-0">
                           <h4 className="font-bold text-white text-md truncate">{b.title}</h4>
-                          <p className="text-sm text-industrial-400 truncate mt-0.5">{b.weight} &bull; {b.type}</p>
+                          <p className="text-sm text-industrial-400 truncate mt-0.5">{b.weight} &bull; {(() => {
+                            const t = b.type || "";
+                            const m = t.match(/^(.+?)\s*\((.+?)\)$/);
+                            if (m && m[2].toLowerCase().startsWith(m[1].toLowerCase())) return m[2];
+                            return t;
+                          })()}</p>
                           <p className="text-xs text-industrial-500 truncate mt-0.5">Source: {b.sellerName}</p>
                         </div>
                       </div>
@@ -409,14 +418,6 @@ export default function BuyerDashboard() {
                 <p className="text-industrial-400">No items in this category yet.</p>
               </div>
             )}
-          </div>
-
-          {/* Procurement Ledger */}
-          <div className="bg-industrial-900 rounded-xl shadow-lg border border-industrial-800 overflow-hidden">
-            <div className="p-6 border-b border-industrial-800 flex justify-between items-center bg-industrial-950/50">
-              <h2 className="text-xl font-bold text-white">Procurement & Bid History</h2>
-            </div>
-            <HistoryTable role="company-buyer" />
           </div>
 
         </div>
@@ -564,6 +565,7 @@ export default function BuyerDashboard() {
           onClose={() => setShowPaymentModal(false)}
           amount={paymentAmount}
           deliveryFee={deliveryFee}
+          deliveryDetails={deliveryDetails}
           logisticsError={logisticsError}
           onSuccess={() => {
             setShowPaymentModal(false);
