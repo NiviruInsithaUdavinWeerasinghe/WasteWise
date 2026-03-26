@@ -132,9 +132,8 @@ export default function Home({ onOpenUpload }) {
 
   return (
     <div className="min-h-screen bg-industrial-950 font-sans text-white selection:bg-nature-500/30 overflow-x-hidden relative">
-      {/* Texture & Glow Background Overlays */}
-      <div className="fixed inset-0 noise-overlay z-0" />
-      <div className="fixed inset-0 mesh-gradient-industrial z-0 opacity-40" />
+      {/* Texture Overlay (Lean version for performance) */}
+      <div className="fixed inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-[0.03] z-0 pointer-events-none" />
       
       {/* Hero Section 2.0 */}
       <section className="relative pt-20 pb-16 lg:pt-24 lg:pb-24 overflow-hidden z-10">
@@ -198,12 +197,12 @@ export default function Home({ onOpenUpload }) {
 
             {/* Right: Immersive Telemetry Panel */}
             <motion.div 
-              initial={{ opacity: 0, scale: 0.9, rotateY: 10 }}
-              animate={{ opacity: 1, scale: 1, rotateY: 0 }}
-              transition={{ duration: 1, delay: 0.2 }}
-              className="relative perspective-1000 hidden lg:block"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, delay: 0.2 }}
+              className="relative hidden lg:block"
             >
-              <div className="relative z-10 glass-nature rounded-[2.5rem] p-10 overflow-hidden group border-nature-500/20 shadow-2xl">
+              <div className="relative z-10 glass-industrial rounded-[2.5rem] p-10 overflow-hidden group">
                  {/* Visual Asset with Dark Overlay */}
                  <div className="absolute inset-0 z-0">
                     <img 
@@ -243,26 +242,20 @@ export default function Home({ onOpenUpload }) {
                     {/* Simulated Chart/Wave Visual */}
                     <div className="space-y-4">
                        <div className="flex justify-between items-end px-1">
-                          <span className="text-[9px] font-bold text-industrial-500 uppercase tracking-widest">Live Material Throughput</span>
-                          <span className="text-[9px] font-bold text-nature-500/80">98.2% EFFICIENCY</span>
+                          <span className="text-[9px] font-bold text-industrial-500 uppercase tracking-widest">Material Flow Efficiency</span>
+                          <span className="text-[9px] font-bold text-nature-500/80">OPTIMIZED</span>
                        </div>
-                       <div className="h-20 w-full bg-industrial-950/40 rounded-2xl border border-white/5 overflow-hidden flex items-end gap-1.5 px-6 py-4 backdrop-blur-md">
-                          {[...Array(16)].map((_, i) => (
-                            <motion.div 
-                              key={i}
-                              animate={{ height: [ 10, Math.random() * 40 + 10, 10 ] }}
-                              transition={{ duration: 1.5 + Math.random(), repeat: Infinity, ease: "easeInOut" }}
-                              className="flex-1 bg-gradient-to-t from-nature-600/40 to-nature-400/20 rounded-full"
-                            />
-                          ))}
+                       <div className="h-1.5 w-full bg-industrial-950/40 rounded-full border border-white/5 overflow-hidden backdrop-blur-md">
+                          <motion.div 
+                            initial={{ width: 0 }}
+                            whileInView={{ width: '98.2%' }}
+                            transition={{ duration: 1.5, ease: "easeOut" }}
+                            className="h-full bg-gradient-to-r from-nature-600 to-teal-500 rounded-full shadow-[0_0_15px_rgba(34,197,94,0.3)]"
+                          />
                        </div>
                     </div>
                  </div>
               </div>
-
-              {/* Decorative Glows */}
-              <div className="absolute -top-12 -right-12 w-48 h-48 bg-nature-500/20 blur-[80px] rounded-full pointer-events-none" />
-              <div className="absolute -bottom-12 -left-12 w-48 h-48 bg-teal-500/20 blur-[80px] rounded-full pointer-events-none" />
             </motion.div>
           </div>
         </div>

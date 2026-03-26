@@ -121,37 +121,31 @@ export default function Marketplace() {
 
   return (
     <div className="min-h-screen bg-industrial-950 font-sans text-white selection:bg-nature-500/30 overflow-x-hidden relative">
-      {/* Texture & Glow Background Overlays */}
-      <div className="fixed inset-0 noise-overlay z-0" />
-      <div className="fixed inset-0 mesh-gradient-industrial z-0 opacity-40" />
+      {/* Texture Overlay (Lean version for performance) */}
+      <div className="fixed inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-[0.03] z-0 pointer-events-none" />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 relative z-10 pt-20">
-        <div className="flex flex-col md:flex-row justify-between items-end mb-12 gap-6">
-          <motion.div 
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            className="space-y-2"
-          >
-             <h1 className="text-4xl font-bold text-white tracking-tight">Industrial Marketplace</h1>
-             <p className="text-industrial-400 text-lg">Live auctions and direct sales from certified factories.</p>
-          </motion.div>
+        <div className="flex flex-col md:flex-row justify-between items-center mb-12 gap-8">
+          <div className="space-y-1 text-center md:text-left">
+             <h1 className="text-4xl font-black text-white tracking-tight uppercase">Industrial Marketplace</h1>
+             <p className="text-industrial-500 text-sm font-bold uppercase tracking-widest flex items-center gap-2 justify-center md:justify-start">
+               <div className="w-2 h-2 rounded-full bg-nature-500 animate-pulse" />
+               Live Auction Network
+             </p>
+          </div>
           
-          <motion.div 
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            className="flex gap-4 w-full md:w-auto"
-          >
-             <div className="relative flex-1 md:w-80">
+          <div className="flex gap-4 w-full md:w-auto">
+             <div className="relative flex-1 md:w-96 group">
                 <input 
                   type="text" 
-                  placeholder="Search materials, locations, types..." 
+                  placeholder="Search materials, factories, locations..." 
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-12 pr-4 py-4 glass-industrial rounded-2xl focus:ring-2 focus:ring-nature-500 outline-none text-white placeholder-industrial-500 transition-all"
+                  className="w-full pl-12 pr-4 py-4 bg-industrial-900 border border-industrial-800 rounded-2xl focus:ring-2 focus:ring-nature-500 outline-none text-white placeholder-industrial-600 transition-all shadow-xl group-hover:border-industrial-700 font-bold"
                 />
-                <Search size={20} className="absolute left-4 top-1/2 -translate-y-1/2 text-industrial-500" />
+                <Search size={20} className="absolute left-4 top-1/2 -translate-y-1/2 text-industrial-500 group-hover:text-nature-500 transition-colors" />
              </div>
-          </motion.div>
+          </div>
         </div>
 
         {isLoading ? (
