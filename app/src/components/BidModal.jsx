@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, TrendingUp, CheckCircle, Clock, MapPin, Package, Shield, Info, User, Archive, FileSignature } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { API_BASE_URL } from '../config/api';
 
 export default function BidModal({ isOpen, onClose, item, onPlaceBid }) {
   const [amount, setAmount] = useState('');
@@ -41,7 +42,7 @@ export default function BidModal({ isOpen, onClose, item, onPlaceBid }) {
       const listingId = item.id || item._id;
       if (!listingId) return;
 
-      const response = await fetch(`http://localhost:5000/api/listings/${listingId}`);
+      const response = await fetch(`${API_BASE_URL}/listings/${listingId}`);
       if (response.ok) {
         const data = await response.json();
         if (data.bids || data.defaultedBids) {

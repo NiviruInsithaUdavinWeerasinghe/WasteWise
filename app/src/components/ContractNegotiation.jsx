@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, FileSignature, Upload, CheckCircle, Clock, Info, ShieldCheck } from 'lucide-react';
 import { uploadFileToCloudinary } from '../services/cloudinaryService';
 import { useAuth } from '../context/AuthContext';
+import { API_BASE_URL } from '../config/api';
 
 export default function ContractNegotiation({ isOpen, onClose, contractId, onUpdate }) {
   const { user } = useAuth();
@@ -26,7 +27,7 @@ export default function ContractNegotiation({ isOpen, onClose, contractId, onUpd
   const fetchContract = async () => {
     setLoading(true);
     try {
-      const response = await fetch(`http://localhost:5000/api/contracts/my-contracts`, {
+      const response = await fetch(`${API_BASE_URL}/contracts/my-contracts`, {
         headers: { Authorization: `Bearer ${user.token}` }
       });
       if (response.ok) {
@@ -53,7 +54,7 @@ export default function ContractNegotiation({ isOpen, onClose, contractId, onUpd
   const handleEdit = async () => {
     setLoading(true);
     try {
-      const response = await fetch(`http://localhost:5000/api/contracts/${contractId}/edit`, {
+      const response = await fetch(`${API_BASE_URL}/contracts/${contractId}/edit`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${user.token}` },
         body: JSON.stringify(formData)
@@ -77,7 +78,7 @@ export default function ContractNegotiation({ isOpen, onClose, contractId, onUpd
     try {
       const { secure_url } = await uploadFileToCloudinary(file);
       const role = user.role.includes('buyer') ? 'buyer' : 'seller';
-      const response = await fetch(`http://localhost:5000/api/contracts/${contractId}/sign`, {
+      const response = await fetch(`${API_BASE_URL}/contracts/${contractId}/sign`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${user.token}` },
         body: JSON.stringify({ signatureUrl: secure_url, role })
@@ -97,7 +98,7 @@ export default function ContractNegotiation({ isOpen, onClose, contractId, onUpd
   const handleEstablish = async () => {
     setLoading(true);
     try {
-      const response = await fetch(`http://localhost:5000/api/contracts/${contractId}/confirm`, {
+      const response = await fetch(`${API_BASE_URL}/contracts/${contractId}/confirm`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${user.token}` }
       });

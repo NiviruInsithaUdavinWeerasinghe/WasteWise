@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, CheckCircle, Package, MapPin, Scale, Tag, Info, AlertTriangle, QrCode, Loader2, Truck } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { useAuth } from '../context/AuthContext';
+import { API_BASE_URL } from '../config/api';
 
 export default function DeliveryDetailsModal({ isOpen, onClose, delivery, onConfirmReceipt }) {
   const { user } = useAuth();
@@ -35,7 +36,7 @@ export default function DeliveryDetailsModal({ isOpen, onClose, delivery, onConf
   const fetchDeliveryStatus = async () => {
     setLoading(true);
     try {
-      const response = await fetch(`http://localhost:5000/api/listings/${delivery.id}/delivery-status`, {
+      const response = await fetch(`${API_BASE_URL}/listings/${delivery.id}/delivery-status`, {
         headers: { Authorization: `Bearer ${user.token}` }
       });
       if (response.ok) {

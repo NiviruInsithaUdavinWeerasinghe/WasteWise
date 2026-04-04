@@ -6,6 +6,7 @@ import BidModal from '../components/BidModal';
 import { useAuth } from '../context/AuthContext';
 import { motion } from 'framer-motion';
 import { getOptimizedUrl } from '../services/cloudinaryService';
+import { API_BASE_URL } from '../config/api';
 
 export default function Home({ onOpenUpload }) {
   const navigate = useNavigate();
@@ -34,7 +35,7 @@ export default function Home({ onOpenUpload }) {
 
   const fetchFeaturedAuctions = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/listings');
+      const response = await fetch(`${API_BASE_URL}/listings`);
       if (response.ok) {
         const data = await response.json();
         // Filter to only auctions, and take the top 3
@@ -74,7 +75,7 @@ export default function Home({ onOpenUpload }) {
 
   const fetchStats = async () => {
     try {
-      const res = await fetch('http://localhost:5000/api/listings/stats');
+      const res = await fetch(`${API_BASE_URL}/listings/stats`);
       if (res.ok) {
         setStats(await res.json());
       }
@@ -105,7 +106,7 @@ export default function Home({ onOpenUpload }) {
 
   const handlePlaceBid = async (amount) => {
     try {
-      const response = await fetch(`http://localhost:5000/api/listings/${selectedBidItem.id}/bid`, {
+      const response = await fetch(`${API_BASE_URL}/listings/${selectedBidItem.id}/bid`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

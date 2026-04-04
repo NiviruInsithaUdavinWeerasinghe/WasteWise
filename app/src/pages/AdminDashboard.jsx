@@ -5,6 +5,7 @@ import { Users, AlertTriangle, CheckCircle, Shield, Building2, MapPin, Mail, X, 
 import { useAuth } from '../context/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import StatCard from '../components/StatCard.jsx';
+import { API_BASE_URL } from '../config/api';
 
 export default function AdminDashboard() {
   const [pendingUsers, setPendingUsers] = useState([]);
@@ -35,7 +36,7 @@ export default function AdminDashboard() {
   const fetchFailedTransactions = async () => {
     if (!user?.token) return;
     try {
-      const response = await fetch('http://localhost:5000/api/listings/failed', {
+      const response = await fetch(`${API_BASE_URL}/listings/failed`, {
         headers: { Authorization: `Bearer ${user.token}` }
       });
       if (response.ok) {
@@ -49,7 +50,7 @@ export default function AdminDashboard() {
 
   const fetchPendingUsers = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/auth/pending', {
+      const response = await fetch(`${API_BASE_URL}/auth/pending`, {
         headers: {
           Authorization: `Bearer ${user.token}`
         }
@@ -66,7 +67,7 @@ export default function AdminDashboard() {
   const fetchAdminStats = async () => {
     if (!user?.token) return;
     try {
-      const response = await fetch('http://localhost:5000/api/auth/admin-stats', {
+      const response = await fetch(`${API_BASE_URL}/auth/admin-stats`, {
         headers: { Authorization: `Bearer ${user.token}` }
       });
       if (response.ok) {
@@ -82,7 +83,7 @@ export default function AdminDashboard() {
   const fetchPlatformActivity = async () => {
     if (!user?.token) return;
     try {
-      const response = await fetch(`http://localhost:5000/api/auth/activity?date=${filterDate}`, {
+      const response = await fetch(`${API_BASE_URL}/auth/activity?date=${filterDate}`, {
         headers: { Authorization: `Bearer ${user.token}` }
       });
       if (response.ok) {
@@ -95,7 +96,7 @@ export default function AdminDashboard() {
 
   const handleApprove = async (id) => {
     try {
-      const response = await fetch(`http://localhost:5000/api/auth/approve/${id}`, {
+      const response = await fetch(`${API_BASE_URL}/auth/approve/${id}`, {
         method: 'PUT',
         headers: {
           Authorization: `Bearer ${user.token}`

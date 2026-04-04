@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, useLocation } from 'react-router-dom';
 import logoUrl from '../assets/logo(v2.2).png';
+import { API_BASE_URL } from '../config/api';
 
 export default function Navbar({ toggleUpload, showUpload }) {
   const { user, logout } = useAuth();
@@ -20,7 +21,7 @@ export default function Navbar({ toggleUpload, showUpload }) {
 
   const fetchNotifications = async () => {
     try {
-      const res = await fetch('http://localhost:5000/api/notifications?limit=10', {
+      const res = await fetch(`${API_BASE_URL}/notifications?limit=10`, {
         headers: { Authorization: `Bearer ${user.token}` }
       });
       if (res.ok) {
@@ -33,7 +34,7 @@ export default function Navbar({ toggleUpload, showUpload }) {
 
   const handleMarkAsRead = async (id) => {
     try {
-      await fetch(`http://localhost:5000/api/notifications/${id}/read`, {
+      await fetch(`${API_BASE_URL}/notifications/${id}/read`, {
         method: 'PATCH',
         headers: { Authorization: `Bearer ${user.token}` }
       });
@@ -44,7 +45,7 @@ export default function Navbar({ toggleUpload, showUpload }) {
 
   const handleMarkAllAsRead = async () => {
     try {
-      await fetch(`http://localhost:5000/api/notifications/read-all`, {
+      await fetch(`${API_BASE_URL}/notifications/read-all`, {
         method: 'PATCH',
         headers: { Authorization: `Bearer ${user.token}` }
       });

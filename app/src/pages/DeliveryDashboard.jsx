@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import StatCard from '../components/StatCard.jsx';
 import { Html5QrcodeScanner, Html5Qrcode } from 'html5-qrcode';
+import { API_BASE_URL } from '../config/api';
 
 export default function DeliveryDashboard() {
     const { user } = useAuth();
@@ -66,7 +67,7 @@ export default function DeliveryDashboard() {
     const fetchJobs = async () => {
         setLoading(true);
         try {
-            const response = await fetch('http://localhost:5000/api/delivery/available', {
+            const response = await fetch(`${API_BASE_URL}/delivery/available`, {
                 headers: { Authorization: `Bearer ${user.token}` }
             });
             if (response.ok) {
@@ -91,7 +92,7 @@ export default function DeliveryDashboard() {
 
     const fetchStats = async () => {
         try {
-            const res = await fetch('http://localhost:5000/api/delivery/stats', {
+            const res = await fetch(`${API_BASE_URL}/delivery/stats`, {
                 headers: { Authorization: `Bearer ${user.token}` }
             });
             if (res.ok) setStats(await res.json());
@@ -100,7 +101,7 @@ export default function DeliveryDashboard() {
 
     const fetchHistory = async () => {
         try {
-            const res = await fetch('http://localhost:5000/api/delivery/history', {
+            const res = await fetch(`${API_BASE_URL}/delivery/history`, {
                 headers: { Authorization: `Bearer ${user.token}` }
             });
             if (res.ok) setHistory(await res.json());
@@ -109,7 +110,7 @@ export default function DeliveryDashboard() {
 
     const claimJob = async (id) => {
         try {
-            const response = await fetch(`http://localhost:5000/api/delivery/${id}/assign`, {
+            const response = await fetch(`${API_BASE_URL}/delivery/${id}/assign`, {
                 method: 'POST',
                 headers: { Authorization: `Bearer ${user.token}` }
             });
@@ -132,7 +133,7 @@ export default function DeliveryDashboard() {
         }
         setScanning(false);
         try {
-            const response = await fetch('http://localhost:5000/api/delivery/scan', {
+            const response = await fetch(`${API_BASE_URL}/delivery/scan`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

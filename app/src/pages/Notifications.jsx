@@ -3,6 +3,7 @@ import { Bell, Check, Award, AlertCircle, FileCheck, BellRing, Info, Trash2, Arc
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import { API_BASE_URL } from '../config/api';
 
 export default function Notifications() {
   const { user } = useAuth();
@@ -20,7 +21,7 @@ export default function Notifications() {
   const fetchNotifications = async (page = 1) => {
     setLoading(true);
     try {
-      const res = await fetch(`http://localhost:5000/api/notifications?page=${page}&limit=20`, {
+      const res = await fetch(`${API_BASE_URL}/notifications?page=${page}&limit=20`, {
         headers: { Authorization: `Bearer ${user.token}` }
       });
       if (res.ok) {
@@ -38,7 +39,7 @@ export default function Notifications() {
 
   const handleMarkAsRead = async (id) => {
     try {
-      await fetch(`http://localhost:5000/api/notifications/${id}/read`, {
+      await fetch(`${API_BASE_URL}/notifications/${id}/read`, {
         method: 'PATCH',
         headers: { Authorization: `Bearer ${user.token}` }
       });
@@ -48,7 +49,7 @@ export default function Notifications() {
 
   const handleMarkAllAsRead = async () => {
     try {
-      await fetch(`http://localhost:5000/api/notifications/read-all`, {
+      await fetch(`${API_BASE_URL}/notifications/read-all`, {
         method: 'PATCH',
         headers: { Authorization: `Bearer ${user.token}` }
       });
@@ -58,7 +59,7 @@ export default function Notifications() {
 
   const handleDeleteNotification = async (id) => {
     try {
-      const res = await fetch(`http://localhost:5000/api/notifications/${id}`, {
+      const res = await fetch(`${API_BASE_URL}/notifications/${id}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${user.token}` }
       });

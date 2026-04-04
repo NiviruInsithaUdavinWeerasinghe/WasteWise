@@ -3,6 +3,7 @@ import { Upload, CheckCircle, Loader, FileText, TrendingUp, AlertCircle, Refresh
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import { uploadFileToCloudinary } from '../services/cloudinaryService';
+import { API_BASE_URL, ML_API_BASE_URL } from '../config/api';
 
 export default function UploadWizard() {
   const [status, setStatus] = useState('idle'); // idle, scanning, complete, details, submitting, success
@@ -35,7 +36,7 @@ export default function UploadWizard() {
 
       try {
         const [response, cloudResult] = await Promise.all([
-          fetch('http://127.0.0.1:5001/predict', {
+          fetch(`${ML_API_BASE_URL}/predict`, {
               method: 'POST',
               body: data,
           }),
@@ -87,7 +88,7 @@ export default function UploadWizard() {
         imageUrl: imageUrl
       };
 
-      const response = await fetch('http://localhost:5000/api/listings', {
+      const response = await fetch(`${API_BASE_URL}/listings`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
