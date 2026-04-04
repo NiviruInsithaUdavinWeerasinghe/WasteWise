@@ -3,6 +3,7 @@ import { ArrowUpRight, ArrowDownLeft, Shield, CheckCircle, RefreshCw, Box, Alert
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import { getOptimizedUrl } from '../services/cloudinaryService';
+import { API_BASE_URL } from '../config/api';
 
 export default function HistoryTable({ role, data = [], title = "Recent History", onViewAll, isShowingAll, totalItems }) {
   const { user } = useAuth();
@@ -111,7 +112,7 @@ export default function HistoryTable({ role, data = [], title = "Recent History"
 
   const handleDownloadSLA = async (listingId) => {
     try {
-      const response = await fetch(`http://localhost:5000/api/agreements/${listingId}/download`, {
+      const response = await fetch(`${API_BASE_URL}/agreements/${listingId}/download`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${user.token}`
@@ -464,7 +465,7 @@ export default function HistoryTable({ role, data = [], title = "Recent History"
                           <button
                             onClick={async () => {
                               try {
-                                const response = await fetch(`http://localhost:5000/api/listings/${selectedItem._id}/certificate`, {
+                                const response = await fetch(`${API_BASE_URL}/listings/${selectedItem._id}/certificate`, {
                                   method: 'GET',
                                   headers: {
                                     'Authorization': `Bearer ${user.token}`

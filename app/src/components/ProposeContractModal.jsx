@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Search, UserCheck, FileSignature, ChevronRight, Loader2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { API_BASE_URL } from '../config/api';
 
 export default function ProposeContractModal({ isOpen, onClose, onSuccess }) {
   const { user } = useAuth();
@@ -38,7 +39,7 @@ export default function ProposeContractModal({ isOpen, onClose, onSuccess }) {
     searchTimeout.current = setTimeout(async () => {
       setSearching(true);
       try {
-        const res = await fetch(`http://localhost:5000/api/auth/search?email=${encodeURIComponent(val)}`, {
+        const res = await fetch(`${API_BASE_URL}/auth/search?email=${encodeURIComponent(val)}`, {
           headers: { Authorization: `Bearer ${user.token}` }
         });
         if (res.ok) setSearchResults(await res.json());
@@ -57,7 +58,7 @@ export default function ProposeContractModal({ isOpen, onClose, onSuccess }) {
     }
     setSubmitting(true);
     try {
-      const res = await fetch('http://localhost:5000/api/contracts/propose', {
+      const res = await fetch(`${API_BASE_URL}/contracts/propose`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${user.token}` },
         body: JSON.stringify({

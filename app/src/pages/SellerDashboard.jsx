@@ -6,6 +6,7 @@ import { useAuth } from '../context/AuthContext';
 import ContractNegotiation from '../components/ContractNegotiation.jsx';
 import ProposeContractModal from '../components/ProposeContractModal.jsx';
 import StatCard from '../components/StatCard.jsx';
+import { API_BASE_URL } from '../config/api';
 
 export default function SellerDashboard({ onOpenUpload }) {
   const { user } = useAuth();
@@ -28,7 +29,7 @@ export default function SellerDashboard({ onOpenUpload }) {
       if (!user?.id) return;
       
       try {
-        const response = await fetch(`http://localhost:5000/api/listings/seller/${user.id}`, {
+        const response = await fetch(`${API_BASE_URL}/listings/seller/${user.id}`, {
           headers: {
             Authorization: `Bearer ${user.token}`
           }
@@ -78,7 +79,7 @@ export default function SellerDashboard({ onOpenUpload }) {
 
   const fetchContractsAndSLAs = async () => {
     try {
-      const cRes = await fetch('http://localhost:5000/api/contracts/my-contracts', {
+      const cRes = await fetch(`${API_BASE_URL}/contracts/my-contracts`, {
         headers: { Authorization: `Bearer ${user.token}` }
       });
       if (cRes.ok) setContracts(await cRes.json());
@@ -289,7 +290,7 @@ export default function SellerDashboard({ onOpenUpload }) {
                            <p className="text-xs text-industrial-500">{c.monthlyQuantityKg}kg/mo &bull; {c.durationMonths}mo</p>
                            {c.status === 'active' && (
                              <a 
-                               href={`http://localhost:5000/api/contracts/${c._id}/download?token=${user.token}`} 
+                               href={`${API_BASE_URL}/contracts/${c._id}/download?token=${user.token}`} 
                                onClick={(e) => e.stopPropagation()}
                                className="text-[10px] font-bold text-nature-500 hover:text-nature-400 flex items-center gap-1 mt-2"
                              >
@@ -310,7 +311,7 @@ export default function SellerDashboard({ onOpenUpload }) {
                               <span className="text-nature-400 text-xs font-bold">{sla.weight}kg</span>
                            </div>
                            <a 
-                             href={`http://localhost:5000/api/agreements/${sla._id}/download?token=${user.token}`}
+                             href={`${API_BASE_URL}/agreements/${sla._id}/download?token=${user.token}`}
                              className="text-[10px] font-bold text-blue-400 hover:text-blue-300 flex items-center gap-1 mt-1"
                            >
                              <FileSignature size={12} /> Download Trade Agreement (PDF)

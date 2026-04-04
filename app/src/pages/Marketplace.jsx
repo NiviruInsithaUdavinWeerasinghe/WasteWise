@@ -5,6 +5,7 @@ import { Search, Loader } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import { getOptimizedUrl } from '../services/cloudinaryService';
+import { API_BASE_URL } from '../config/api';
 
 export default function Marketplace() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -40,7 +41,7 @@ export default function Marketplace() {
   const fetchListings = async () => {
     setIsLoading(true);
     try {
-      const response = await fetch('http://localhost:5000/api/listings');
+      const response = await fetch(`${API_BASE_URL}/listings`);
       if (response.ok) {
         const data = await response.json();
         const formattedItems = data.map(listing => {
@@ -88,7 +89,7 @@ export default function Marketplace() {
 
   const handlePlaceBid = async (amount) => {
     try {
-      const response = await fetch(`http://localhost:5000/api/listings/${selectedBidItem.id}/bid`, {
+      const response = await fetch(`${API_BASE_URL}/listings/${selectedBidItem.id}/bid`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

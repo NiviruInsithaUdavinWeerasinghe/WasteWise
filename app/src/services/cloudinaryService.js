@@ -1,5 +1,5 @@
-const CLOUD_NAME = 'dellh4wkq';
-const UPLOAD_PRESET = 'wisewaste_preset';
+const CLOUD_NAME = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || 'dellh4wkq';
+const UPLOAD_PRESET = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET || 'wisewaste_preset';
 
 /**
  * Uploads a file to Cloudinary.

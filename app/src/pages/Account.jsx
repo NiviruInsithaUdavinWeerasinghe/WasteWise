@@ -3,6 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { motion } from 'framer-motion';
 import { User, Mail, Building2, MapPin, Camera, Save, CheckCircle, AlertCircle } from 'lucide-react';
 import { uploadFileToCloudinary } from '../services/cloudinaryService';
+import { API_BASE_URL } from '../config/api';
 
 export default function Account() {
   const { user, updateUser } = useAuth();
@@ -40,7 +41,7 @@ export default function Account() {
     setMessage({ type: '', text: '' });
 
     try {
-      const response = await fetch('http://localhost:5000/api/auth/profile', {
+      const response = await fetch(`${API_BASE_URL}/auth/profile`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -88,7 +89,7 @@ export default function Account() {
     setMessage({ type: '', text: '' });
     
     try {
-      const response = await fetch('http://localhost:5000/api/auth/change-password', {
+      const response = await fetch(`${API_BASE_URL}/auth/change-password`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
