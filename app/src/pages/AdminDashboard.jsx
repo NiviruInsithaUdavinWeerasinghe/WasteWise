@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import DashboardChart from '../components/DashboardChart.jsx';
 import HistoryTable from '../components/HistoryTable.jsx';
 import { Users, AlertTriangle, CheckCircle, Shield, Building2, MapPin, Mail, X, Phone } from 'lucide-react';
@@ -285,14 +286,14 @@ export default function AdminDashboard() {
 
       {/* User Details Popup Modal */}
       <AnimatePresence>
-        {selectedUser && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        {selectedUser && createPortal(
+          <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setSelectedUser(null)}
-              className="absolute inset-0 bg-industrial-950/80 backdrop-blur-md"
+              className="absolute inset-0 bg-industrial-950/90 backdrop-blur-md"
             />
 
             <motion.div
@@ -376,7 +377,8 @@ export default function AdminDashboard() {
                 </button>
               </div>
             </motion.div>
-          </div>
+          </div>,
+          document.body
         )}
       </AnimatePresence>
     </div>
