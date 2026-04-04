@@ -12,12 +12,47 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Check local storage for existing session
-    const storedUser = localStorage.getItem('wiseWasteUser');
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
-    }
-    setLoading(false);
+    const checkSession = async () => {
+      const storedUser = localStorage.getItem('wiseWasteUser');
+      if (storedUser) {
+        const parsedUser = JSON.parse(storedUser);
+        setUser(parsedUser);
+
+        // Fetch fresh data from server to sync approval status/profile
+        try {
+          const response = await fetch(`${API_BASE_URL}/auth/me`, {
+            headers: {
+              Authorization: `Bearer ${parsedUser.token}`
+            }
+          });
+
+          if (response.ok) {
+            const freshData = await response.json();
+            const updatedUser = {
+              ...parsedUser,
+              name: freshData.name,
+              email: freshData.email,
+              role: freshData.role,
+              isApproved: freshData.isApproved,
+              profilePhoto: freshData.profilePhoto,
+              phoneNumber: freshData.phoneNumber,
+              companyDetails: freshData.companyDetails,
+              companyName: freshData.role.includes('company') ? `${freshData.name} Corp` : undefined
+            };
+            setUser(updatedUser);
+            localStorage.setItem('wiseWasteUser', JSON.stringify(updatedUser));
+          } else if (response.status === 401) {
+            // Token expired or invalid
+            logout();
+          }
+        } catch (error) {
+          console.error("Session sync failed:", error);
+        }
+      }
+      setLoading(false);
+    };
+
+    checkSession();
   }, []);
 
   const login = async (email, password) => {

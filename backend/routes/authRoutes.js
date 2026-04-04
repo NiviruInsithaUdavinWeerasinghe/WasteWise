@@ -1,6 +1,6 @@
 const express = require('express');
 const jwt = require('jsonwebtoken');
-const { registerUser, loginUser, generateToken, changePassword } = require('../controllers/authController');
+const { registerUser, loginUser, generateToken, changePassword, getMe } = require('../controllers/authController');
 const { protect, admin } = require('../middleware/authMiddleware');
 const User = require('../models/User');
 const Listing = require('../models/Listing');
@@ -11,6 +11,7 @@ const router = express.Router();
 
 router.post('/register', registerUser);
 router.post('/login', loginUser);
+router.get('/me', protect, getMe);
 router.post('/change-password', protect, changePassword);
 
 // Admin routes for approvals
