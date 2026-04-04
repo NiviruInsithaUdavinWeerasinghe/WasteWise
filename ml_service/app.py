@@ -22,7 +22,7 @@ if not api_key:
 print(f"Using API Key: {api_key[:8]}...{api_key[-4:]}")
 
 genai.configure(api_key=api_key)
-vision_model = genai.GenerativeModel('gemini-flash-latest')
+vision_model = genai.GenerativeModel('gemini-1.5-flash')
 
 app = Flask(__name__)
 CORS(app)
@@ -93,7 +93,7 @@ Return ONLY a valid JSON object exactly like this: {"quality_grade": "Grade A"}.
             print("Gemini Vision Error:", error_msg)
             with open("gemini_error.log", "w") as f:
                 f.write(error_msg)
-            quality_grade = f"FAIL: {error_msg[:12]}"  # Truncate to fit UI
+            quality_grade = f"FAIL: {error_msg[:30]}"  # Show more context for diagnosis
         # =====================================================
 
         return jsonify({
