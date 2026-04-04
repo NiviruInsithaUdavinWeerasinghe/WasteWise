@@ -285,102 +285,104 @@ export default function AdminDashboard() {
       </div>
 
       {/* User Details Popup Modal */}
-      <AnimatePresence>
-        {selectedUser && createPortal(
-          <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setSelectedUser(null)}
-              className="absolute inset-0 bg-industrial-950/90 backdrop-blur-md"
-            />
+      {createPortal(
+        <AnimatePresence>
+          {selectedUser && (
+            <div className="fixed inset-0 z-[999] flex items-center justify-center p-4">
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setSelectedUser(null)}
+                className="absolute inset-0 bg-industrial-950/90 backdrop-blur-md"
+              />
 
-            <motion.div
-              initial={{ opacity: 0, scale: 0.8, y: 50 }}
-              animate={{
-                opacity: 1,
-                scale: 1,
-                y: 0,
-                transition: { type: "spring", bounce: 0.5, duration: 0.6 }
-              }}
-              exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="relative z-50 bg-industrial-900 rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden border border-industrial-700"
-            >
-              <div className="bg-industrial-950/50 p-6 border-b border-industrial-800 flex justify-between items-start">
-                <div className="flex items-center gap-4">
-                  <div className="w-16 h-16 bg-gradient-to-br from-nature-600 to-nature-800 rounded-2xl flex items-center justify-center text-white text-2xl font-bold shadow-lg shadow-nature-900/50 border border-nature-500/30">
-                    {selectedUser.name.charAt(0).toUpperCase()}
-                  </div>
-                  <div>
-                    <h3 className="text-xl font-black text-white">{selectedUser.name}</h3>
-                    <span className="inline-flex items-center gap-1 bg-orange-500/10 text-orange-400 border border-orange-500/20 text-xs font-bold px-2.5 py-1 rounded-full mt-2">
-                      <AlertTriangle size={12} /> Pending {selectedUser.role === 'company-seller' ? 'Factory' : 'Courier'} Verification
-                    </span>
-                  </div>
-                </div>
-                <button onClick={() => setSelectedUser(null)} className="text-industrial-500 hover:text-white transition-colors bg-industrial-800/50 hover:bg-industrial-700 p-2 rounded-full">
-                  <X size={20} />
-                </button>
-              </div>
-
-              <div className="p-8 space-y-6">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                  <div className="space-y-1">
-                    <p className="text-xs font-bold text-industrial-500 uppercase tracking-wider flex items-center gap-1"><Mail size={14} /> Contact Email</p>
-                    <p className="text-sm font-medium text-white">{selectedUser.email}</p>
-                  </div>
-
-                  {selectedUser.role === 'company-seller' ? (
-                    <div className="space-y-1">
-                      <p className="text-xs font-bold text-industrial-500 uppercase tracking-wider flex items-center gap-1"><Building2 size={14} /> BR Number</p>
-                      <p className="text-sm font-medium text-white font-mono bg-industrial-950 px-3 py-1.5 rounded-lg border border-industrial-800 inline-block shadow-inner">{selectedUser.companyDetails?.brNumber}</p>
+              <motion.div
+                initial={{ opacity: 0, scale: 0.8, y: 50 }}
+                animate={{
+                  opacity: 1,
+                  scale: 1,
+                  y: 0,
+                  transition: { type: "spring", bounce: 0.5, duration: 0.6 }
+                }}
+                exit={{ opacity: 0, scale: 0.9, y: 20 }}
+                className="relative z-50 bg-industrial-900 rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden border border-industrial-700"
+              >
+                <div className="bg-industrial-950/50 p-6 border-b border-industrial-800 flex justify-between items-start">
+                  <div className="flex items-center gap-4">
+                    <div className="w-16 h-16 bg-gradient-to-br from-nature-600 to-nature-800 rounded-2xl flex items-center justify-center text-white text-2xl font-bold shadow-lg shadow-nature-900/50 border border-nature-500/30">
+                      {selectedUser.name.charAt(0).toUpperCase()}
                     </div>
-                  ) : (
-                    <div className="space-y-1">
-                      <p className="text-xs font-bold text-industrial-500 uppercase tracking-wider flex items-center gap-1"><Phone size={14} /> Contact Number</p>
-                      <p className="text-sm font-medium text-white font-mono bg-industrial-950 px-3 py-1.5 rounded-lg border border-industrial-800 inline-block shadow-inner">{selectedUser.phoneNumber || "No contact info provided"}</p>
+                    <div>
+                      <h3 className="text-xl font-black text-white">{selectedUser.name}</h3>
+                      <span className="inline-flex items-center gap-1 bg-orange-500/10 text-orange-400 border border-orange-500/20 text-xs font-bold px-2.5 py-1 rounded-full mt-2">
+                        <AlertTriangle size={12} /> Pending {selectedUser.role === 'company-seller' ? 'Factory' : 'Courier'} Verification
+                      </span>
                     </div>
-                  )}
+                  </div>
+                  <button onClick={() => setSelectedUser(null)} className="text-industrial-500 hover:text-white transition-colors bg-industrial-800/50 hover:bg-industrial-700 p-2 rounded-full">
+                    <X size={20} />
+                  </button>
+                </div>
 
-                  <div className="space-y-1 sm:col-span-2">
-                    <p className="text-xs font-bold text-industrial-500 uppercase tracking-wider flex items-center gap-1"><MapPin size={14} /> {selectedUser.role === 'company-seller' ? 'Registered Address' : 'Residential Address'}</p>
-                    <p className="text-sm font-medium text-industrial-300 bg-industrial-950 p-4 rounded-xl border border-industrial-800 shadow-inner leading-relaxed">
-                      {selectedUser.role === 'company-seller' ? selectedUser.companyDetails?.address : selectedUser.address || "Address not provided."}
-                    </p>
+                <div className="p-8 space-y-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                    <div className="space-y-1">
+                      <p className="text-xs font-bold text-industrial-500 uppercase tracking-wider flex items-center gap-1"><Mail size={14} /> Contact Email</p>
+                      <p className="text-sm font-medium text-white">{selectedUser.email}</p>
+                    </div>
+
+                    {selectedUser.role === 'company-seller' ? (
+                      <div className="space-y-1">
+                        <p className="text-xs font-bold text-industrial-500 uppercase tracking-wider flex items-center gap-1"><Building2 size={14} /> BR Number</p>
+                        <p className="text-sm font-medium text-white font-mono bg-industrial-950 px-3 py-1.5 rounded-lg border border-industrial-800 inline-block shadow-inner">{selectedUser.companyDetails?.brNumber}</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-1">
+                        <p className="text-xs font-bold text-industrial-500 uppercase tracking-wider flex items-center gap-1"><Phone size={14} /> Contact Number</p>
+                        <p className="text-sm font-medium text-white font-mono bg-industrial-950 px-3 py-1.5 rounded-lg border border-industrial-800 inline-block shadow-inner">{selectedUser.phoneNumber || "No contact info provided"}</p>
+                      </div>
+                    )}
+
+                    <div className="space-y-1 sm:col-span-2">
+                      <p className="text-xs font-bold text-industrial-500 uppercase tracking-wider flex items-center gap-1"><MapPin size={14} /> {selectedUser.role === 'company-seller' ? 'Registered Address' : 'Residential Address'}</p>
+                      <p className="text-sm font-medium text-industrial-300 bg-industrial-950 p-4 rounded-xl border border-industrial-800 shadow-inner leading-relaxed">
+                        {selectedUser.role === 'company-seller' ? selectedUser.companyDetails?.address : selectedUser.address || "Address not provided."}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="bg-orange-500/10 p-4 rounded-xl border border-orange-500/20 text-sm text-orange-200/90 flex gap-3 items-start">
+                    <AlertTriangle className="text-orange-500 shrink-0 mt-0.5" size={18} />
+                    <div>
+                      <span className="font-bold text-orange-400 block mb-1">Administrator Check Required</span>
+                      {selectedUser.role === 'company-seller'
+                        ? "Please verify the Business Registration number against the official government database before approving this factory."
+                        : "Please contact the deliveryman and verify their residential address and identity before approval."}
+                    </div>
                   </div>
                 </div>
 
-                <div className="bg-orange-500/10 p-4 rounded-xl border border-orange-500/20 text-sm text-orange-200/90 flex gap-3 items-start">
-                  <AlertTriangle className="text-orange-500 shrink-0 mt-0.5" size={18} />
-                  <div>
-                    <span className="font-bold text-orange-400 block mb-1">Administrator Check Required</span>
-                    {selectedUser.role === 'company-seller'
-                      ? "Please verify the Business Registration number against the official government database before approving this factory."
-                      : "Please contact the deliveryman and verify their residential address and identity before approval."}
-                  </div>
+                <div className="p-6 border-t border-industrial-800 flex gap-4 bg-industrial-950/30">
+                  <button
+                    onClick={() => setSelectedUser(null)}
+                    className="flex-1 py-3 px-4 font-bold text-industrial-400 bg-industrial-800 hover:bg-industrial-700 hover:text-white rounded-xl transition-all"
+                  >
+                    Close
+                  </button>
+                  <button
+                    onClick={() => handleApprove(selectedUser._id)}
+                    className="flex-1 py-3 px-4 font-bold text-white bg-nature-600 hover:bg-nature-500 shadow-lg shadow-nature-900/50 rounded-xl transition-all flex items-center justify-center gap-2"
+                  >
+                    <CheckCircle size={18} /> Approve {selectedUser.role === 'company-seller' ? 'Factory' : 'Courier'}
+                  </button>
                 </div>
-              </div>
-
-              <div className="p-6 border-t border-industrial-800 flex gap-4 bg-industrial-950/30">
-                <button
-                  onClick={() => setSelectedUser(null)}
-                  className="flex-1 py-3 px-4 font-bold text-industrial-400 bg-industrial-800 hover:bg-industrial-700 hover:text-white rounded-xl transition-all"
-                >
-                  Close
-                </button>
-                <button
-                  onClick={() => handleApprove(selectedUser._id)}
-                  className="flex-1 py-3 px-4 font-bold text-white bg-nature-600 hover:bg-nature-500 shadow-lg shadow-nature-900/50 rounded-xl transition-all flex items-center justify-center gap-2"
-                >
-                  <CheckCircle size={18} /> Approve {selectedUser.role === 'company-seller' ? 'Factory' : 'Courier'}
-                </button>
-              </div>
-            </motion.div>
-          </div>,
-          document.body
-        )}
-      </AnimatePresence>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>,
+        document.body
+      )}
     </div>
   );
 }
