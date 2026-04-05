@@ -365,7 +365,7 @@ router.get('/search', protect, async (req, res) => {
       _id: { $ne: req.user.id }, // Exclude self
       role: { $in: allowedTargetRoles },
       isApproved: true // Only approved counterparties
-    }).select('_id name email role').limit(10);
+    }).select('_id name email role profilePhoto').limit(10);
     
     res.json(users);
   } catch (error) {
