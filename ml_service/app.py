@@ -22,7 +22,7 @@ if not api_key:
 print(f"Using API Key: {api_key[:8]}...{api_key[-4:]}")
 
 genai.configure(api_key=api_key)
-vision_model = genai.GenerativeModel('gemini-1.5-flash')
+vision_model = genai.GenerativeModel('gemini-flash-latest')
 
 app = Flask(__name__)
 CORS(app)
@@ -72,15 +72,13 @@ def predict():
 
         # ====== Gemini AI Integration for Quality Grade ======
         try:
+            from google.api_core import retry
             prompt = """Analyze this image of waste fabric/material. Estimate the quality grade strictly based on these rules:
 - 'Grade A': Clean, high-quality fabric off-cuts, pristine condition, no heavy fraying, zero stains, or tears. (Clean roll ends and off-cuts are Grade A).
 - 'Grade B': Noticeable edge fraying, slight marks, or minor discoloration, but moderately usable.
 - 'Grade C': Heavily contaminated, dirty, stained, or shredded.
 Return ONLY a valid JSON object exactly like this: {"quality_grade": "Grade A"}."""
             
-            # Use request_options to set a reasonable timeout (e.g., 10 seconds)
-            # to prevent the frontend from hanging forever if the API is slow.
-            from google.api_core import retry
             response = vision_model.generate_content(
                 [prompt, image],
             )
@@ -91,8 +89,18 @@ Return ONLY a valid JSON object exactly like this: {"quality_grade": "Grade A"}.
         except Exception as e:
             error_msg = str(e)
             print("Gemini Vision Error:", error_msg)
+            
+            # Diagnostic for 404 errors
+            log_content = error_msg
+            if "404" in error_msg:
+                try:
+                    models = [m.name for m in genai.list_models()]
+                    log_content = f"Model 404 Error. Available models for this key: {models}\nFull Error: {error_msg}"
+                except:
+                    pass
+
             with open("gemini_error.log", "w") as f:
-                f.write(error_msg)
+                f.write(log_content)
             quality_grade = f"FAIL: {error_msg[:30]}"  # Show more context for diagnosis
         # =====================================================
 

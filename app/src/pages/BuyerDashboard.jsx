@@ -4,7 +4,7 @@ import AuctionCard from '../components/AuctionCard.jsx';
 import { useAuth } from '../context/AuthContext';
 import BidModal from '../components/BidModal.jsx';
 import PaymentModal from '../components/PaymentModal.jsx';
-import { Package, TrendingUp, DollarSign, CloudRain, Star, Truck, CheckCircle, FileSignature, Info } from 'lucide-react';
+import { Package, TrendingUp, DollarSign, CloudRain, Star, Truck, CheckCircle, FileSignature, Info, Shield, Trophy, Zap } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { getOptimizedUrl } from '../services/cloudinaryService';
 import DeliveryDetailsModal from '../components/DeliveryDetailsModal.jsx';
@@ -288,15 +288,99 @@ export default function BuyerDashboard() {
           <h1 className="text-3xl font-bold text-white mb-2">Procurement Dashboard</h1>
           <p className="text-industrial-400">Manage bulk waste procurement, active contracts, and digital trade agreements.</p>
         </div>
-        <div className="bg-nature-900/40 p-4 rounded-xl border border-nature-500/20 flex items-center gap-4 shadow-sm min-w-[300px]">
-          <div className="bg-industrial-900 p-3 rounded-full shadow-inner text-nature-400 border border-industrial-800">
-            <Star size={24} fill="currentColor" />
-          </div>
-          <div>
-            <h2 className="text-lg font-bold text-white">Verified Recycler</h2>
-            <p className="text-nature-400 text-xs">Tier 1 Sustainability Partner</p>
-          </div>
-        </div>
+        {(() => {
+          const kg = buyerStats.totalWeightTonnes * 1000;
+          const tiers = [
+            { threshold: 50000, name: "Quantum Resource Overlord", sub: "Global Sustainability Benchmark", color: "from-white via-industrial-100 to-industrial-300", icon: Shield, glow: "shadow-white/20", border: "border-white/40", text: "text-industrial-950", bg: "bg-white", bar: "bg-industrial-900" },
+            { threshold: 25000, name: "Titanium Industrial Visionary", sub: "Resource Optimization Elite", color: "from-zinc-400 via-zinc-200 to-zinc-500", icon: Trophy, glow: "shadow-zinc-500/30", border: "border-zinc-400/30", text: "text-zinc-100", bg: "bg-zinc-900", bar: "bg-zinc-400" },
+            { threshold: 10000, name: "Diamond Resource Guardian", sub: "Master of Circular Economy", color: "from-cyan-400 via-blue-300 to-indigo-400", icon: Star, glow: "shadow-cyan-500/40", border: "border-cyan-400/30", text: "text-cyan-100", bg: "bg-cyan-950", bar: "bg-cyan-400" },
+            { threshold: 5000, name: "Platinum Circularity Champion", sub: "Superior Efficiency Partner", color: "from-slate-300 via-slate-100 to-slate-400", icon: CheckCircle, glow: "shadow-slate-400/20", border: "border-slate-300/30", text: "text-slate-200", bg: "bg-slate-900", bar: "bg-slate-300" },
+            { threshold: 2500, name: "Gold Sustainability Leader", sub: "Premium Ecological Contributor", color: "from-amber-400 via-yellow-200 to-amber-600", icon: Star, glow: "shadow-amber-500/30", border: "border-amber-400/30", text: "text-amber-100", bg: "bg-amber-950", bar: "bg-amber-400" },
+            { threshold: 1000, name: "Silver Sustainability Partner", sub: "Verified Eco-Systems Member", color: "from-industrial-300 via-industrial-100 to-industrial-400", icon: Shield, glow: "shadow-industrial-400/20", border: "border-industrial-300/30", text: "text-industrial-200", bg: "bg-industrial-800", bar: "bg-industrial-300" },
+            { threshold: 600, name: "Eco-Warrior Status", sub: "Active Combatant of Industrial Waste", color: "from-purple-600 via-purple-400 to-purple-800", icon: Zap, glow: "shadow-purple-500/20", border: "border-purple-500/20", text: "text-purple-100", bg: "bg-purple-950", bar: "bg-purple-500" },
+            { threshold: 300, name: "Sustainability Scout", sub: "Progressive Resource Manager", color: "from-blue-600 via-blue-400 to-blue-800", icon: TrendingUp, glow: "shadow-blue-500/20", border: "border-blue-500/20", text: "text-blue-100", bg: "bg-blue-950", bar: "bg-blue-500" },
+            { threshold: 100, name: "Green Initiate", sub: "Developing Circular Habitats", color: "from-nature-600 via-nature-400 to-nature-800", icon: Package, glow: "shadow-nature-500/20", border: "border-nature-500/20", text: "text-nature-100", bg: "bg-nature-950", bar: "bg-nature-500" },
+            { threshold: 0, name: "Novice Recycler", sub: "Beginning The Circular Journey", color: "from-industrial-600 via-industrial-400 to-industrial-700", icon: Package, glow: "shadow-industrial-500/10", border: "border-industrial-700", text: "text-industrial-400", bg: "bg-industrial-900", bar: "bg-industrial-600" }
+          ];
+
+          const currentTierIndex = tiers.findIndex(t => kg >= t.threshold);
+          const currentTier = tiers[currentTierIndex];
+          const nextTier = tiers[currentTierIndex - 1];
+          const progress = nextTier ? ((kg - currentTier.threshold) / (nextTier.threshold - currentTier.threshold)) * 100 : 100;
+          const TierIcon = currentTier.icon;
+
+          return (
+            <motion.div 
+              whileHover={{ scale: 1.02, translateY: -2 }}
+              className="relative group cursor-help"
+            >
+              {/* Animated Background Dynamic Glow */}
+              <div className={`absolute -inset-0.5 bg-gradient-to-r ${currentTier.color} rounded-2xl blur opacity-10 group-hover:opacity-30 transition duration-700`}></div>
+              
+              <div className={`relative ${currentTier.bg}/90 backdrop-blur-2xl p-5 rounded-2xl border ${currentTier.border} flex items-center gap-5 shadow-2xl min-w-[340px] overflow-hidden`}>
+                {/* Background Pattern Overlay */}
+                <div className="absolute inset-0 opacity-[0.03] pointer-events-none bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]"></div>
+                
+                {/* Tier Badge Icon */}
+                <div className={`relative p-3.5 rounded-2xl shadow-lg border transition-all duration-700 ${currentTier.bg} ${currentTier.border} ${currentTier.text} ${currentTier.glow}`}>
+                  <motion.div
+                    animate={kg >= 5000 ? {
+                      rotate: [0, 5, -5, 5, 0],
+                      scale: [1, 1.05, 1],
+                      filter: ["brightness(1)", "brightness(1.5)", "brightness(1)"]
+                    } : {}}
+                    transition={{ duration: 3, repeat: Infinity }}
+                  >
+                    <TierIcon size={28} strokeWidth={2.5} fill={kg >= 2500 ? "currentColor" : "none"} />
+                  </motion.div>
+                  {/* Rank Indicator Badge */}
+                  <div className={`absolute -top-2 -right-2 w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black border tracking-tighter ${currentTier.bg} ${currentTier.border} ${currentTier.text}`}>
+                    {10 - currentTierIndex}
+                  </div>
+                </div>
+                
+                <div className="flex-1 relative">
+                  <div className="flex items-center justify-between gap-3 mb-1">
+                    <h2 className={`text-[13px] font-black uppercase tracking-[0.1em] ${currentTier.text}`}>
+                      {currentTier.name}
+                    </h2>
+                  </div>
+                  <p className="text-[10px] font-medium text-industrial-400 tracking-wide mb-3 opacity-80 italic">
+                    {currentTier.sub}
+                  </p>
+                  
+                  {/* Multi-Tier Progress Tracking */}
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-[9px] font-black uppercase tracking-widest text-industrial-500">
+                      <span>Exp: {kg.toLocaleString()} units</span>
+                      {nextTier && <span className="text-industrial-300">Next: {nextTier.threshold >= 1000 ? `${(nextTier.threshold/1000).toFixed(1)}t` : `${nextTier.threshold}kg`}</span>}
+                    </div>
+                    
+                    <div className="h-1.5 w-full bg-black/40 rounded-full overflow-hidden border border-white/5 p-[1px]">
+                      <motion.div 
+                        initial={{ width: 0 }}
+                        animate={{ width: `${Math.min(progress, 100)}%` }}
+                        transition={{ duration: 1.5, ease: "easeOut" }}
+                        className={`h-full rounded-full bg-gradient-to-r ${currentTier.color} shadow-[0_0_10px_rgba(255,255,255,0.1)]`}
+                      />
+                    </div>
+                    
+                    {nextTier && (
+                      <div className="flex items-center gap-1.5 mt-1">
+                        <div className="w-1 h-1 rounded-full bg-nature-500 animate-pulse"></div>
+                        <p className="text-[8px] font-bold text-industrial-400 tracking-wider">
+                          {nextTier.threshold >= 1000 
+                            ? `${(nextTier.threshold - kg / 1000).toFixed(2)} tonnes until ${nextTier.name.split(' ')[0]}`
+                            : `${(nextTier.threshold - kg).toFixed(0)} units until evolution`}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          );
+        })()}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
