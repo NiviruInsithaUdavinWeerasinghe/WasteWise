@@ -143,13 +143,17 @@ export default function DeliveryDashboard() {
             });
             const data = await response.json();
             if (response.ok) {
-                setMessage({ type: 'success', text: 'QR scanned successfully! Waiting for buyer to confirm receipt.' });
+                setMessage({ type: 'success', text: 'Handshake Verified! Waiting for buyer to finalize.' });
                 fetchJobs(); 
             } else {
-                setMessage({ type: 'error', text: data.message });
+                // Better error visibility for the "404" business logic error
+                setMessage({ 
+                    type: 'error', 
+                    text: data.message || (response.status === 404 ? 'Invalid QR code or assignment mismatch.' : 'Scanning failed.') 
+                });
             }
         } catch (err) {
-            setMessage({ type: 'error', text: 'Scanning error. Please try again.' });
+            setMessage({ type: 'error', text: 'Network error. Please ensure you are online.' });
         }
     };
 
@@ -179,7 +183,8 @@ export default function DeliveryDashboard() {
                 handleScanSuccess
             ).catch(err => {
                 console.error("Scanner start error:", err);
-                setError("Could not start camera. Please ensure permissions are granted.");
+                const isPermissionError = err?.toString().includes("NotAllowedError") || err?.toString().includes("Permission dismissed");
+                setError(isPermissionError ? "Camera Access Denied. Please enable it in your browser settings." : "Could not start camera.");
                 setScanning(false);
             });
 
