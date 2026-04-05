@@ -598,8 +598,14 @@ export default function BuyerDashboard() {
                     >
                       <div className="flex justify-between items-center mb-2">
                         <h4 className="text-white text-sm font-bold truncate">{c.wasteType} Supply</h4>
-                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md border ${c.status === 'active' ? 'bg-nature-500/10 text-nature-400 border-nature-500/20' : 'bg-industrial-800 text-industrial-500 border-industrial-700'}`}>
-                          {c.status.toUpperCase()}
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md border ${
+                          c.status === 'active' 
+                            ? 'bg-nature-500/10 text-nature-400 border-nature-500/20' 
+                            : (c.buyerSignatureUrl && c.sellerSignatureUrl)
+                              ? 'bg-blue-500/10 text-blue-400 border-blue-500/20'
+                              : 'bg-industrial-800 text-industrial-500 border-industrial-700'
+                        }`}>
+                          {(c.buyerSignatureUrl && c.sellerSignatureUrl && c.status !== 'active') ? 'READY TO ESTABLISH' : c.status.toUpperCase()}
                         </span>
                       </div>
                       <p className="text-xs text-industrial-500">{c.monthlyQuantityKg}kg/mo &bull; {c.durationMonths} months</p>

@@ -58,11 +58,13 @@ export default function StatCard({
         {/* Right Half */}
         <div className="flex-1 p-6 bg-nature-500/5 relative overflow-hidden hover:bg-nature-500/10 transition-all duration-300">
           <div className="relative z-10">
-            <secondHalf.icon size={18} className="text-nature-500 mb-3" />
+            <div className="flex items-center gap-2 mb-3 text-nature-500">
+              <secondHalf.icon size={18} />
+              <span className="font-bold text-[10px] uppercase tracking-wider">{secondHalf.label}</span>
+            </div>
             <div className="text-xl font-extrabold text-white leading-none mb-1 group-hover:scale-105 transition-transform origin-left duration-300">{secondHalf.value}</div>
-            <div className="text-[10px] text-industrial-400 font-medium uppercase tracking-tight">{secondHalf.label}</div>
           </div>
-          <div className="absolute -right-4 -bottom-4 opacity-10 group-hover:scale-125 group-hover:opacity-20 transition-all duration-700 pointer-events-none">
+          <div className="absolute -right-4 -bottom-4 opacity-10 group-hover:scale-125 group-hover:opacity-20 transition-all duration-700 pointer-events-none text-nature-500">
             <secondHalf.icon size={80} />
           </div>
         </div>
