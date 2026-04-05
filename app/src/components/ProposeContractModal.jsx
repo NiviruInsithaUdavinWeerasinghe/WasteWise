@@ -164,8 +164,12 @@ export default function ProposeContractModal({ isOpen, onClose, onSuccess }) {
                                 : 'border-industrial-800 bg-industrial-950/50 hover:border-industrial-700'
                             }`}
                           >
-                            <div className="w-9 h-9 rounded-full bg-industrial-800 flex items-center justify-center text-white font-bold text-sm shrink-0 border border-industrial-700">
-                              {u.name[0].toUpperCase()}
+                            <div className="w-10 h-10 rounded-full bg-industrial-800 flex items-center justify-center text-white font-bold text-sm shrink-0 border border-industrial-700 overflow-hidden">
+                              {u.profilePhoto ? (
+                                <img src={u.profilePhoto} alt={u.name} className="w-full h-full object-cover" />
+                              ) : (
+                                u.name[0].toUpperCase()
+                              )}
                             </div>
                             <div className="min-w-0 flex-1">
                               <p className="font-bold text-white text-sm truncate">{u.name}</p>

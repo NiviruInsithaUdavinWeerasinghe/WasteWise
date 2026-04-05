@@ -29,7 +29,7 @@ export default function AuctionCard({ title, weight, currentBid, minBid, timeEnd
         <div className={`grid grid-cols-2 gap-4 ${compact ? 'my-3' : 'my-6'}`}>
            <div className="space-y-1">
               <p className={`text-industrial-500 font-bold uppercase tracking-tighter ${compact ? 'text-[9px]' : 'text-[10px]'}`}>Current Bid</p>
-              <p className={`font-black text-nature-400 tracking-tight ${compact ? 'text-lg' : 'text-2xl'}`}>{currentBid}</p>
+              <p className={`font-black text-nature-400 tracking-tight whitespace-nowrap truncate ${compact ? 'text-lg' : 'text-2xl'}`} title={currentBid}>{currentBid}</p>
            </div>
            <div className="text-right space-y-1">
               <p className={`text-industrial-500 font-bold uppercase tracking-tighter ${compact ? 'text-[9px]' : 'text-[10px]'}`}>Status</p>
