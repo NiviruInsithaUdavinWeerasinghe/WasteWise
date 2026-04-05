@@ -78,23 +78,37 @@ router.post('/scan', approved, async (req, res) => {
         const { qrCodeString } = req.body;
         const deliverymanId = req.user.id;
 
-        const agreement = await Agreement.findOne({ qrCodeString, deliverymanId: deliverymanId });
-
-        if (!agreement) {
-            return res.status(404).json({ message: 'Invalid QR code or you are not assigned to this delivery' });
+        if (!qrCodeString) {
+            return res.status(400).json({ message: 'No QR code provided' });
         }
 
-        if (agreement.deliveryStatus === 'delivered') {
-            return res.status(400).json({ message: 'This delivery is already completed' });
+        // Diagnostic Find: Search by QR first to see if it even exists
+        const agreementByQR = await Agreement.findOne({ qrCodeString });
+        
+        if (!agreementByQR) {
+             console.log(`Scan Failure: QR code [${qrCodeString.substring(0, 8)}...] not found in database.`);
+             return res.status(404).json({ message: 'Invalid handshake code. Please ensure you are scanning the buyer\'s latest QR code.' });
         }
 
-        agreement.deliveryStatus = 'qr_scanned';
-        await agreement.save();
+        // Now check if it's assigned to THIS deliveryman
+        const actualDeliverymanId = agreementByQR.deliverymanId?._id?.toString() || agreementByQR.deliverymanId?.toString();
+        if (actualDeliverymanId !== deliverymanId.toString()) {
+            console.log(`Scan Failure: QR matches Agreement ${agreementByQR._id}, but it is assigned to deliveryman ${actualDeliverymanId}, not ${deliverymanId}`);
+            return res.status(403).json({ message: 'This delivery is not assigned to you.' });
+        }
 
-        res.status(200).json({ message: 'QR scanned! Waiting for buyer to confirm receipt.' });
+        if (agreementByQR.deliveryStatus === 'delivered' || agreementByQR.deliveryStatus === 'qr_scanned') {
+            return res.status(400).json({ message: 'This handshake has already been verified.' });
+        }
+
+        agreementByQR.deliveryStatus = 'qr_scanned';
+        await agreementByQR.save();
+
+        console.log(`Scan Success: Handshake verified for Agreement ${agreementByQR._id} by courier ${deliverymanId}`);
+        res.status(200).json({ message: 'Handshake Verified! Waiting for buyer to finalize the transaction.' });
     } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: 'Server error during QR scan' });
+        console.error('QR Scan Processing Error:', error);
+        res.status(500).json({ message: 'Internal server error during handshake verification.' });
     }
 });
 
