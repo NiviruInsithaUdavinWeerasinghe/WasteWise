@@ -46,23 +46,29 @@ export default function StatCard({
         className="md:col-span-1 bg-industrial-900 rounded-2xl shadow-xl border border-industrial-800 overflow-hidden flex group"
       >
         {/* Left Half */}
-        <div className="flex-1 p-6 border-r border-industrial-800/50 hover:bg-industrial-800/30 transition-colors">
-          <div className={`flex items-center gap-2 mb-3 ${selectedColor.split(' ')[0]}`}>
-            <Icon size={18} className="drop-shadow-[0_0_8px_rgba(34,197,94,0.3)]" /> 
-            <span className="font-bold text-[10px] uppercase tracking-wider">{label}</span>
+        <div className="flex-1 p-6 border-r border-industrial-800/50 hover:bg-industrial-800/30 transition-colors flex flex-col">
+          <div className={`flex items-start gap-2 mb-4 min-h-[2.5rem] ${selectedColor.split(' ')[0]}`}>
+            <Icon size={18} className="mt-0.5 drop-shadow-[0_0_8px_rgba(34,197,94,0.3)] shrink-0" /> 
+            <span className="font-bold text-[10px] uppercase tracking-wider leading-tight">{label}</span>
           </div>
-          <div className="text-xl font-extrabold text-white leading-none mb-1 group-hover:scale-105 transition-transform origin-left duration-300">{value}</div>
-          <div className="text-[10px] text-industrial-500 font-medium uppercase tracking-tight">{subValue}</div>
+          <div className="mt-auto">
+            <div className="text-xl font-extrabold text-white leading-none mb-1 group-hover:scale-105 transition-transform origin-left duration-300">{value}</div>
+            <div className="text-[10px] text-industrial-500 font-medium uppercase tracking-tight">{subValue}</div>
+          </div>
         </div>
 
         {/* Right Half */}
-        <div className="flex-1 p-6 bg-nature-500/5 relative overflow-hidden hover:bg-nature-500/10 transition-all duration-300">
-          <div className="relative z-10">
-            <div className="flex items-center gap-2 mb-3 text-nature-500">
-              <secondHalf.icon size={18} />
-              <span className="font-bold text-[10px] uppercase tracking-wider">{secondHalf.label}</span>
+        <div className="flex-1 p-6 bg-nature-500/5 relative overflow-hidden hover:bg-nature-500/10 transition-all duration-300 flex flex-col">
+          <div className="relative z-10 flex flex-col h-full">
+            <div className="flex items-start gap-2 mb-4 min-h-[2.5rem] text-nature-500">
+              <secondHalf.icon size={18} className="mt-0.5 shrink-0" />
+              <span className="font-bold text-[10px] uppercase tracking-wider leading-tight">{secondHalf.label}</span>
             </div>
-            <div className="text-xl font-extrabold text-white leading-none mb-1 group-hover:scale-105 transition-transform origin-left duration-300">{secondHalf.value}</div>
+            <div className="mt-auto">
+              <div className="text-xl font-extrabold text-white leading-none mb-1 group-hover:scale-105 transition-transform origin-left duration-300">{secondHalf.value}</div>
+              {/* Empty placeholder to match left-side subValue height */}
+              <div className="text-[10px] opacity-0" aria-hidden="true">&nbsp;</div>
+            </div>
           </div>
           <div className="absolute -right-4 -bottom-4 opacity-10 group-hover:scale-125 group-hover:opacity-20 transition-all duration-700 pointer-events-none text-nature-500">
             <secondHalf.icon size={80} />
