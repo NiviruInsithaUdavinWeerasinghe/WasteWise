@@ -255,7 +255,7 @@ const calculateDeliveryFee = async (req, res) => {
     const origin = listing.location;
     const destination = buyer.companyDetails?.address || "Colombo, Sri Lanka";
 
-    const googleMapsApiKey = process.env.GOOGLE_MAPS_API_KEY;
+    const googleMapsApiKey = process.env.GOOGLE_MAPS_API_KEY || process.env.Maps_API_KEY;
     const response = await axios.get(`https://maps.googleapis.com/maps/api/distancematrix/json?origins=${encodeURIComponent(origin)}&destinations=${encodeURIComponent(destination)}&key=${googleMapsApiKey}`);
 
     if (response.data.status === 'OK' && response.data.rows[0].elements[0].status === 'OK') {
@@ -356,7 +356,7 @@ const completePayment = async (req, res) => {
         const origin = listing.location;
         const destination = buyer.companyDetails?.address || "Colombo, Sri Lanka"; // Fallback for testing if address is missing
 
-        const googleMapsApiKey = process.env.GOOGLE_MAPS_API_KEY;
+        const googleMapsApiKey = process.env.GOOGLE_MAPS_API_KEY || process.env.Maps_API_KEY;
         const response = await axios.get(`https://maps.googleapis.com/maps/api/distancematrix/json?origins=${encodeURIComponent(origin)}&destinations=${encodeURIComponent(destination)}&key=${googleMapsApiKey}`);
 
         if (response.data.status === 'OK' && response.data.rows[0].elements[0].status === 'OK') {
