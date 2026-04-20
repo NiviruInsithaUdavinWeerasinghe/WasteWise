@@ -2,6 +2,8 @@
 
 WasteWise is a comprehensive industrial waste marketplace platform. It connects businesses to efficiently trade, manage, and recycle industrial waste through an advanced, secure platform environment.
 
+**🔗 [Live Demo URL](https://wastewise-jade.vercel.app/)**
+
 <table>
   <tr>
     <td><img src="https://github.com/user-attachments/assets/b64c87a8-f20f-4a7e-a27f-ce9dcac40e5b" alt="home page" /><br/><sub>home page</sub></td>
