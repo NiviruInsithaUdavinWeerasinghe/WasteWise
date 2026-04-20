@@ -25,7 +25,8 @@ WasteWise is a comprehensive industrial waste marketplace platform. It connects 
 *   **QR Code Tracking:** Employs QR Codes for physical tracking, ensuring secure and verified pick-up and drop-off of waste items.
 *   **Advanced Admin Verification:** A centralized Admin Dashboard designed to monitor platform health, resolve disputes, and manually verify new Seller and Deliveryman accounts for a secure ecosystem.
 
-![WasteWise System Architecture](https://fake-image.com/architecture-preview.png)
+<img width="1376" height="768" alt="Gemini_Generated_Image_w0m9eyw0m9eyw0m9" src="https://github.com/user-attachments/assets/f7e4d752-98f0-45a7-9c70-2042fe147dfb" />
+
 ## Tech Stack
 * **Frontend:** React (Vite)
 * **Backend:** Node.js, Express, MongoDB
