@@ -1,7 +1,21 @@
 # WasteWise Project Setup Guide
 
-WasteWise is an industrial waste marketplace platform. It connects businesses to efficiently trade, manage, and recycle industrial waste, utilizing a machine learning service for intelligent waste categorization and matching.
+WasteWise is a comprehensive industrial waste marketplace platform. It connects businesses to efficiently trade, manage, and recycle industrial waste through an advanced, secure platform environment.
 
+## 🌟 Key Features
+
+![WasteWise Dashboard Presentation](https://fake-image.com/dashboard-preview.png)
+
+*   **Intelligent Listings & ML Integration:** Sellers can easily upload waste listings. A dedicated ML Model, augmented by the Gemini API, automatically categorizes the material and evaluates the quality grade based on uploaded images.
+*   **Dynamic Bidding System:** An interactive marketplace where buyers can place bids on available industrial waste items.
+*   **Comprehensive Notifications & Mailing:** Integrated automated on-platform notifications and email alerts keep users informed about their bids, listings, and contract states.
+*   **Long-Term Contracts & PDFs:** Facilitates the creation of Long-Term Service Level Agreements (SLAs). Once finalized, the system automatically generates binding PDF contracts for both parties.
+*   **Green Certificates & Blockchain Verification:** Awards Green Certificates to companies validating their eco-friendly recycling contributions. The system utilizes SHA-256 cryptographic hashing—mimicking blockchain immutability—to generate a unique, tamper-proof "digital fingerprint" printed directly on every certificate to guarantee its authenticity.
+*   **Integrated Logistics & Delivery:** Features a dedicated Deliveryman role. Logistics pickup and transport fees are automatically calculated utilizing the Google Maps Distance Matrix API.
+*   **QR Code Tracking:** Employs QR Codes for physical tracking, ensuring secure and verified pick-up and drop-off of waste items.
+*   **Advanced Admin Verification:** A centralized Admin Dashboard designed to monitor platform health, resolve disputes, and manually verify new Seller and Deliveryman accounts for a secure ecosystem.
+
+![WasteWise System Architecture](https://fake-image.com/architecture-preview.png)
 ## Tech Stack
 * **Frontend:** React (Vite)
 * **Backend:** Node.js, Express, MongoDB
