@@ -10,6 +10,8 @@ WasteWise is a comprehensive industrial waste marketplace platform. It connects 
   </a>
 </div>
 
+<br />
+
 <table>
   <tr>
     <td><img src="https://github.com/user-attachments/assets/b64c87a8-f20f-4a7e-a27f-ce9dcac40e5b" alt="home page" /><br/><sub>home page</sub></td>
