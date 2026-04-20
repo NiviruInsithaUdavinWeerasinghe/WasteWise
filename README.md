@@ -6,6 +6,7 @@ WasteWise is an industrial waste marketplace platform. It connects businesses to
 * **Frontend:** React (Vite)
 * **Backend:** Node.js, Express, MongoDB
 * **ML Service:** Python, Flask, Google Gemini AI (through Google AI Studio)
+* **Cloud Infrastructure:** Cloudinary (for media uploads)
 
 ---
 
@@ -20,6 +21,20 @@ Ensure you have the following installed on your system:
 
 Environment variables are used to store sensitive information and configuration settings outside of the source code. Because these values handle passwords and API keys, every developer working on the project needs to generate and use their own personal values for their local setup.
 
+### Frontend Environment Variables
+Create an `.env` or `.env.local` file inside the `app` directory:
+```text
+VITE_API_BASE_URL=http://localhost:5000/api
+VITE_ML_API_BASE_URL=http://127.0.0.1:7860
+VITE_CLOUDINARY_CLOUD_NAME=your_cloudinary_cloud_name
+VITE_CLOUDINARY_UPLOAD_PRESET=your_cloudinary_upload_preset
+```
+
+**How to get these required frontend values:**
+* **VITE_API_BASE_URL**: URL of the backend API service. Local default is `http://localhost:5000/api`.
+* **VITE_ML_API_BASE_URL**: URL of the machine learning predictive service. Local default is `http://127.0.0.1:7860`.
+* **VITE_CLOUDINARY_CLOUD_NAME** & **VITE_CLOUDINARY_UPLOAD_PRESET**: Create a free account at [Cloudinary](https://cloudinary.com/). Go to your Cloudinary Dashboard to find your Cloud Name. Then navigate to Settings > Upload, and create a new **unsigned** upload preset.
+
 ### Backend Environment Variables
 Create a `.env` file inside the `backend` directory:
 ```text
@@ -28,6 +43,8 @@ MONGO_URI=your_mongodb_connection_string
 JWT_SECRET=your_jwt_secret_key
 STRIPE_SECRET_KEY=your_stripe_test_key
 GOOGLE_MAPS_API_KEY=your_google_maps_api_key
+EMAIL_USER=your_email@gmail.com
+EMAIL_PASS=your_app_password
 NODE_ENV=development
 ```
 
@@ -45,6 +62,7 @@ NODE_ENV=development
     4.  Set up **Billing** (Note: $200 free credit monthly).
     5.  Go to **APIs & Services > Credentials**, click **+ CREATE CREDENTIALS**, and select **API key**.
     6.  Copy and paste this key into your `.env`.
+*   **EMAIL_USER** & **EMAIL_PASS**: Used by Nodemailer to dispatch system notifications. It is recommended to use a Gmail account. To secure your setup, enable 2FA on the Google Account, then go to Security > App Passwords, and generate a 16-character app password to paste into `EMAIL_PASS`.
 *   **NODE_ENV**: Tells the server what environment it is running in. Set this to `development` for local work.
 
 ### ML Service Environment Variables
@@ -106,4 +124,4 @@ python app.py
 ```
 
 > [!NOTE]
-> The ML service runs on port `5001` to avoid conflicts with the backend server which runs on port `5000`.
+> The ML service runs on port `7860` locally to align with Hugging Face ecosystem defaults. This also conveniently avoids conflicts with the backend server which runs on port `5000`.
