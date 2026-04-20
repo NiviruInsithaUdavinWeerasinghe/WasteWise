@@ -4,7 +4,20 @@ WasteWise is a comprehensive industrial waste marketplace platform. It connects 
 
 ## 🌟 Key Features
 
-![WasteWise Dashboard Presentation](https://fake-image.com/dashboard-preview.png)
+<table>
+  <tr>
+    <td><img src="https://github.com/user-attachments/assets/b64c87a8-f20f-4a7e-a27f-ce9dcac40e5b" alt="home page" /><br/><sub>home page</sub></td>
+    <td><img src="https://github.com/user-attachments/assets/4cc36c15-856c-40b3-a1d3-4a6ecd0123d9" alt="marketplace" /><br/><sub>marketplace</sub></td>
+    <td><img src="https://github.com/user-attachments/assets/578d94ed-18a8-4501-a353-186f98a49a8b" alt="company seller dashboard" /><br/><sub>company seller dashboard</sub></td>
+  </tr>
+  <tr>
+    <td><img src="https://github.com/user-attachments/assets/a5fbab99-caaa-4f60-8b6b-278f01522929" alt="company buyer dashboard" /><br/><sub>company buyer dashboard</sub></td>
+    <td><img src="https://github.com/user-attachments/assets/f12bab50-49fb-4b9f-bc41-f915b81f475c" alt="deliveryman dashboard" /><br/><sub>deliveryman dashboard</sub></td>
+    <td><img src="https://github.com/user-attachments/assets/6e698481-cf86-4b2b-a458-8c277ee60cee" alt="admin dashboard" /><br/><sub>admin dashboard</sub></td>
+  </tr>
+</table>
+
+
 
 *   **Intelligent Listings & ML Integration:** Sellers can easily upload waste listings. A dedicated ML Model, augmented by the Gemini API, automatically categorizes the material and evaluates the quality grade based on uploaded images.
 *   **Dynamic Bidding System:** An interactive marketplace where buyers can place bids on available industrial waste items.
