@@ -2,8 +2,6 @@
 
 WasteWise is a comprehensive industrial waste marketplace platform. It connects businesses to efficiently trade, manage, and recycle industrial waste through an advanced, secure platform environment.
 
-## 🌟 Key Features
-
 <table>
   <tr>
     <td><img src="https://github.com/user-attachments/assets/b64c87a8-f20f-4a7e-a27f-ce9dcac40e5b" alt="home page" /><br/><sub>home page</sub></td>
@@ -17,8 +15,7 @@ WasteWise is a comprehensive industrial waste marketplace platform. It connects 
   </tr>
 </table>
 
-
-
+## 🌟 Key Features
 *   **Intelligent Listings & ML Integration:** Sellers can easily upload waste listings. A dedicated ML Model, augmented by the Gemini API, automatically categorizes the material and evaluates the quality grade based on uploaded images.
 *   **Dynamic Bidding System:** An interactive marketplace where buyers can place bids on available industrial waste items.
 *   **Comprehensive Notifications & Mailing:** Integrated automated on-platform notifications and email alerts keep users informed about their bids, listings, and contract states.
